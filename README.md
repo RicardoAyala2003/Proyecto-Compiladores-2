@@ -1,103 +1,124 @@
 # Proyecto Compiladores 2
 
-Bienvenido/a a *Proyecto Compiladores 2*. Este repositorio contiene el código, la documentación y los recursos asociados a un proyecto educativo de compiladores. El README está escrito en español y está pensado para usarse como punto de partida; ajusta las secciones concretas (lenguaje, comandos, rutas) según la implementación real del proyecto.
+Bienvenido/a a Proyecto Compiladores 2.
+Este repositorio contiene el código, la documentación y los recursos asociados a un proyecto educativo de compiladores desarrollado en C++.
+El objetivo es implementar paso a paso las fases principales de un compilador, desde el análisis léxico hasta la generación de código intermedio.
+
+------------------------------------------------------------
 
 ## Descripción
 
-Proyecto Compiladores 2 es un trabajo práctico de compiladores cuyo objetivo es diseñar e implementar las fases principales de un compilador: análisis léxico, análisis sintáctico, análisis semántico, generación/intermedia y, opcionalmente, generación de código/optimización. El proyecto puede incluir un lenguaje de dominio pequeño (mini-lenguaje) para demostrar las capacidades del compilador.
+Proyecto Compiladores 2 es un trabajo práctico cuyo propósito es diseñar e implementar las fases fundamentales de un compilador para un mini-lenguaje de programación.
 
-## Características
+Incluye:
 
-- Analizador léxico (tokenizador) con manejo de comentarios y literales.
-- Analizador sintáctico (por ejemplo, LL(1) o LR) que construye un AST.
-- Análisis semántico: tablas de símbolos, chequeo de tipos y validaciones.
-- Generación de código intermedio (tac/3-address code) y/o generación de código objetivo (opcional).
-- Conjunto de pruebas de ejemplo y programas de prueba.
+- Análisis léxico (Lexer): tokenización del código fuente, con manejo de comentarios, literales y palabras reservadas.
+- Análisis sintáctico (Parser): construcción del árbol sintáctico (AST) usando técnicas LL(1) o LR.
+- Análisis semántico: manejo de tablas de símbolos, validación de tipos y detección de errores semánticos.
+- Generación de código intermedio: producción de Three Address Code (TAC) o estructura similar.
+- (Opcional) generación de código objeto o ensamblador.
 
-## Requisitos (asunciones)
+------------------------------------------------------------
 
-Asumo que el proyecto está implementado en un lenguaje moderno (por ejemplo Python, Java, C# o OCaml). Ajusta estas instrucciones si usas otro lenguaje.
+## Características principales
 
-- Python 3.8+ (si la implementación es en Python) o JDK 11+ (si en Java).
-- Herramientas de build según lenguaje (pip, virtualenv, Maven, Gradle, dotnet, etc.).
+- Lexer implementado manualmente o mediante herramientas (Flex opcional).
+- Parser manual o generado con Bison opcional.
+- AST estructurado en clases C++.
+- Sistema de compilación mediante CMake.
+- Soporte para múltiples pruebas de entrada/salida.
 
-## Estructura sugerida de carpetas
+------------------------------------------------------------
 
-- src/                - Código fuente del compilador
-- tests/              - Tests unitarios y de integración
-- examples/           - Programas de ejemplo (entradas de prueba)
-- docs/               - Documentación adicional (gramática, diagramas)
-- build/              - Artefactos de compilación y salidas intermedias
-- README.md           - Este archivo
+## Estructura de carpetas sugerida
 
+Proyecto-Compiladores-2/
+├── CMakeLists.txt          # Configuración principal de CMake
+├── src/                    # Código fuente (lexer, parser, semántica, main, etc.)
+│   ├── lexer/
+│   ├── parser/
+│   ├── semantic/
+│   ├── codegen/
+│   └── main.cpp
+├── include/                # Archivos de cabecera (.hpp / .h)
+├── examples/               # Programas de ejemplo del lenguaje
+├── tests/                  # Pruebas unitarias e integración
+├── docs/                   # Diagramas, gramáticas, autómatas, documentación
+├── build/                  # Carpeta generada por CMake (compilación)
+└── README.md
 
-## Instalación (ejemplos)
+------------------------------------------------------------
 
-Si el proyecto es en Python (ejemplo):
+## Requisitos
 
-```powershell
-# crear y activar entorno virtual (Windows PowerShell)
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+- C++17 o superior
+- CMake 3.15+
+- Compilador compatible:
+  - GCC 9.0 o superior
+  - Clang 10 o superior
+  - MSVC 2019 o superior
 
-Si el proyecto es en Java (ejemplo con Maven):
+(Opcional: Flex/Bison si se automatizan las fases léxica o sintáctica).
 
-```powershell
-mvn clean install
-```
+------------------------------------------------------------
 
-Ajusta los comandos anteriores al lenguaje y a la herramienta de build que uses.
+## Instalación y compilación
+
+Compilación con CMake:
+
+mkdir -p build
+cd build
+cmake ..
+cmake --build .
+
+Esto generará el ejecutable principal dentro de build/ (por ejemplo build/Compilador).
+
+------------------------------------------------------------
 
 ## Uso
 
-Ejecuta el compilador sobre un archivo fuente de ejemplo. Ejemplos genéricos:
+Ejecutar el compilador sobre un archivo fuente del mini-lenguaje.
 
-Python (suponiendo un script `compile.py`):
+Ejemplo:
 
-```powershell
-# analizar y compilar un archivo de ejemplo
-python src\compile.py examples\programa_ejemplo.lang -o build\programa_ejemplo.out
-```
+./build/Compilador examples/programa_ejemplo.lang
 
-Java (suponiendo una clase Main empaquetada):
+Si el programa admite opciones de salida:
 
-```powershell
-java -jar target\proyecto-compiladores-2.jar examples\programa_ejemplo.lang
-```
+./build/Compilador examples/programa_ejemplo.lang -o build/programa_ejemplo.out
 
-Incluye en el proyecto scripts concretos (`run`, `build`, `test`) que simplifiquen estos pasos.
+------------------------------------------------------------
 
 ## Tests
 
-Añade tests unitarios para el analizador léxico, sintáctico y semántico. Ejemplos de ejecución (Python/pytest):
+Los tests pueden implementarse usando Catch2 o GoogleTest.
 
-```powershell
-# ejecutar tests
-pytest -q
-```
+Ejemplo de ejecución:
 
-## Cómo contribuir
+ctest --output-on-failure
 
-1. Haz fork del repositorio.
-2. Crea una rama con una descripción clara: `feature/mi-mejora` o `fix/eror-x`.
-3. Abre un Pull Request explicando los cambios.
-4. Añade tests para cualquier funcionalidad nueva o corrección.
+O directamente:
 
-## Buenas prácticas y recomendaciones
+./build/tests/lexer_tests
+./build/tests/parser_tests
 
-- Mantén la gramática y la especificación del lenguaje en `docs/` (BNF/EBNF).
-- Versiona los casos de prueba en `examples/` y documenta su propósito.
-- Separa claramente las fases del compilador en módulos para facilitar pruebas unitarias.
+------------------------------------------------------------
 
-## Licencia
+## Buenas prácticas
 
-Añade aquí la licencia que corresponde (por ejemplo MIT, GPL, CC). Si no has decidido, puedes usar MIT como plantilla.
+- Mantener las gramáticas y autómatas documentados en docs/.
+- Dividir las fases del compilador en módulos (lexer, parser, semantic, codegen).
+- Usar nombres consistentes y evitar dependencias circulares entre módulos.
+- Crear tests para cada fase (por ejemplo, testear el lexer aislado antes del parser).
+- Incluir programas de ejemplo en examples/ que validen todas las construcciones del lenguaje.
 
-## Contacto
+------------------------------------------------------------
 
-Si querés más cambios en el README o que lo adapte a un lenguaje/estructura concreta, decime cuál es la implementación (p. ej. Python, Java, OCaml) y lo ajusto.
+## Ejemplo de contenido en docs/
 
----
+- gramatica.ebnf — gramática formal del lenguaje.
+- automata_lexer.pdf — diagrama de autómata del analizador léxico.
+- ast_diagram.png — representación del árbol sintáctico.
+- semantic_rules.md — reglas semánticas del lenguaje.
 
-Archivo generado automáticamente: si querés, puedo añadir badges (build/tests) o crear scripts `run` y `test` en el repo.
+------------------------------------------------------------
