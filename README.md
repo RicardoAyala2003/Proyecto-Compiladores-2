@@ -1,10 +1,10 @@
-# Proyecto Compiladores 24
+# Proyecto Compiladores 2
 
-Bienvenido/a a *Proyecto Compiladores 24*. Este repositorio contiene el código, la documentación y los recursos asociados a un proyecto educativo de compiladores. El README está escrito en español y está pensado para usarse como punto de partida; ajusta las secciones concretas (lenguaje, comandos, rutas) según la implementación real del proyecto.
+Bienvenido/a a *Proyecto Compiladores 2*. Este repositorio contiene el código, la documentación y los recursos asociados a un proyecto educativo de compiladores. El README está escrito en español y está pensado para usarse como punto de partida; ajusta las secciones concretas (lenguaje, comandos, rutas) según la implementación real del proyecto.
 
 ## Descripción
 
-Proyecto Compiladores 24 es un trabajo práctico de compiladores cuyo objetivo es diseñar e implementar las fases principales de un compilador: análisis léxico, análisis sintáctico, análisis semántico, generación/intermedia y, opcionalmente, generación de código/optimización. El proyecto puede incluir un lenguaje de dominio pequeño (mini-lenguaje) para demostrar las capacidades del compilador.
+Proyecto Compiladores 2 es un trabajo práctico de compiladores cuyo objetivo es diseñar e implementar las fases principales de un compilador: análisis léxico, análisis sintáctico, análisis semántico, generación/intermedia y, opcionalmente, generación de código/optimización. El proyecto puede incluir un lenguaje de dominio pequeño (mini-lenguaje) para demostrar las capacidades del compilador.
 
 ## Características
 
@@ -63,7 +63,7 @@ python src\compile.py examples\programa_ejemplo.lang -o build\programa_ejemplo.o
 Java (suponiendo una clase Main empaquetada):
 
 ```powershell
-java -jar target\proyecto-compiladores-24.jar examples\programa_ejemplo.lang
+java -jar target\proyecto-compiladores-2.jar examples\programa_ejemplo.lang
 ```
 
 Incluye en el proyecto scripts concretos (`run`, `build`, `test`) que simplifiquen estos pasos.

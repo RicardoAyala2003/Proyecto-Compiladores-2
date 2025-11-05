@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
-# Proyecto Compiladores 24 - configuración CMake para C++
-project(ProyectoCompiladores24 LANGUAGES CXX)
+# Proyecto Compiladores 2 - configuración CMake para C++
+project(ProyectoCompiladores2 LANGUAGES CXX)
 
 # Estándar C++ por defecto (ajustable)
 set(CMAKE_CXX_STANDARD 17)
@@ -40,11 +40,11 @@ endif()
 
 # Si hay fuentes en src/, crear ejecutable. Si no, mostrar aviso.
 if(PROJECT_SOURCES)
-  add_executable(proyecto_compiladores_24 ${PROJECT_SOURCES})
-  target_include_directories(proyecto_compiladores_24 PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  add_executable(proyecto_compiladores_2 ${PROJECT_SOURCES})
+  target_include_directories(proyecto_compiladores_2 PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
   # Instalación (opcional)
-  install(TARGETS proyecto_compiladores_24
+  install(TARGETS proyecto_compiladores_2
     RUNTIME DESTINATION bin
   )
 else()
