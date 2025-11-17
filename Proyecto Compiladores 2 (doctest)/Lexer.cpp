@@ -32,19 +32,12 @@ std::string Lexer::getNextToken()
     {
         switch (currentState)
         {
-        case 0: 
+        case 0: // Estado inicial
             if ((currentChar >= 9 && currentChar <= 10) || currentChar == 13 || currentChar == 32)
             {
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "EOF";
-                currentState = 1; 
-            }
-            else if (currentChar == '"')
-            {
-                buffer += currentChar;
-                currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 15;
+                currentState = 1; // Espacios en blanco
             }
             else if (currentChar == '+')
             {
@@ -56,7 +49,7 @@ std::string Lexer::getNextToken()
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "OP_SUB";
-                currentState = 2; 
+                currentState = 2; // Puede ser OP_SUB o inicio de número negativo
             }
             else if (currentChar == '*')
             {
@@ -68,7 +61,7 @@ std::string Lexer::getNextToken()
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "OP_DIV";
-                currentState = 3; 
+                currentState = 3; // Puede ser OP_DIV o comentario
             }
             else if (currentChar == '%')
             {
@@ -80,41 +73,42 @@ std::string Lexer::getNextToken()
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "OP_ASSIGN";
-                currentState = 4; 
+                currentState = 4; // Puede ser OP_ASSIGN o OP_EQ
             }
             else if (currentChar == '!')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "OP_NOT";
-                currentState = 5; 
+                currentState = 5; // Puede ser OP_NOT o OP_NE
             }
             else if (currentChar == '<')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "OP_LT";
-                currentState = 6; 
-             }else if (currentChar == '>')
+                currentState = 6; // Puede ser OP_LT o OP_LE
+            }
+            else if (currentChar == '>')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "OP_GT";
-                currentState = 7; 
+                currentState = 7; // Puede ser OP_GT o OP_GE
             }
             else if (currentChar == '&')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "ERROR";
-                currentState = 8;
+                currentState = 8; // Debe ser &&
             }
             else if (currentChar == '|')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "ERROR";
-                currentState = 9; 
+                currentState = 9; // Debe ser ||
             }
             else if (currentChar == ';')
             {
@@ -151,14 +145,14 @@ std::string Lexer::getNextToken()
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "INTEGER";
-                currentState = 10; 
+                currentState = 10; // Número entero
             }
             else if (std::isalpha(currentChar) || currentChar == '_')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "IDENTIFIER";
-                currentState = 11;
+                currentState = 11; // Identificador o keyword
             }
             else
             {
@@ -167,11 +161,11 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 1: 
+        case 1: // Espacios en blanco
             currentState = 0;
             break;
 
-        case 2: 
+        case 2: // OP_SUB o número negativo
             if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
@@ -186,18 +180,18 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 3: 
+        case 3: // OP_DIV o comentario
             if (currentChar == '/')
             {
                 buffer = "";
-                currentState = 12; 
+                currentState = 12; // Comentario de línea
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "EOF";
             }
             else if (currentChar == '*')
             {
                 buffer = "";
-                currentState = 13; 
+                currentState = 13; // Comentario de bloque
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "ERROR";
             }
@@ -208,7 +202,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 4: 
+        case 4: // OP_ASSIGN o OP_EQ
             if (currentChar == '=')
             {
                 buffer += currentChar;
@@ -221,7 +215,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 5: 
+        case 5: // OP_NOT o OP_NE
             if (currentChar == '=')
             {
                 buffer += currentChar;
@@ -234,7 +228,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 6: 
+        case 6: // OP_LT o OP_LE
             if (currentChar == '=')
             {
                 buffer += currentChar;
@@ -247,7 +241,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 7: 
+        case 7: // OP_GT o OP_GE
             if (currentChar == '=')
             {
                 buffer += currentChar;
@@ -260,7 +254,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 8: 
+        case 8: // OP_AND
             if (currentChar == '&')
             {
                 buffer += currentChar;
@@ -272,7 +266,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 9: 
+        case 9: // OP_OR
             if (currentChar == '|')
             {
                 buffer += currentChar;
@@ -284,7 +278,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 10: 
+        case 10: // Número entero
             if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
@@ -299,14 +293,14 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 11: 
+        case 11: // Identificador o keyword
             if (std::isalnum(currentChar) || currentChar == '_')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0')
                 {
-                  
+                    // Verificar keywords al final
                     if (buffer == "if") return "KW_IF";
                     if (buffer == "else") return "KW_ELSE";
                     if (buffer == "while") return "KW_WHILE";
@@ -322,7 +316,7 @@ std::string Lexer::getNextToken()
             else
             {
                 index--;
-               
+                // Verificar keywords
                 if (buffer == "if") return "KW_IF";
                 if (buffer == "else") return "KW_ELSE";
                 if (buffer == "while") return "KW_WHILE";
@@ -335,7 +329,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 12: 
+        case 12: // Comentario de línea
             if (currentChar == '\n' || currentChar == '\r')
             {
                 currentChar = getNextChar();
@@ -351,7 +345,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 13: 
+        case 13: // Comentario de bloque - buscando *
             if (currentChar == '*')
             {
                 currentChar = getNextChar();
@@ -366,7 +360,7 @@ std::string Lexer::getNextToken()
             }
             break;
 
-        case 14: 
+        case 14: // Comentario de bloque - después de *
             if (currentChar == '/')
             {
                 currentChar = getNextChar();
@@ -385,35 +379,6 @@ std::string Lexer::getNextToken()
                 currentChar = getNextChar();
                 if (currentChar == '\0') return "ERROR";
                 currentState = 13;
-            }
-            break;
-
-        case 15: 
-            if (currentChar == '"')
-            {
-                buffer += currentChar;
-                return "STRING_LITERAL";
-            }
-            else if (currentChar == '\\')
-            {
-                buffer += currentChar;
-                currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                buffer += currentChar; 
-                currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 15;
-            }
-            else if (currentChar == '\n')
-            {
-                return "ERROR"; 
-            }
-            else
-            {
-                buffer += currentChar;
-                currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 15;
             }
             break;
         }
