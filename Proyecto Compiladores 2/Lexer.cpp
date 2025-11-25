@@ -20,400 +20,394 @@ std::string Lexer::getBuffer()
     return buffer;
 }
 
-std::string Lexer::getNextToken()
+int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
 {
-    int currentState = 0;
+    State currentState = S0;
     buffer = "";
 
     char currentChar = getNextChar();
-    if (currentChar == '\0') return "EOF";
+    if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
 
     while (true)
     {
         switch (currentState)
         {
-        case 0: 
+        case S0: 
             if ((currentChar >= 9 && currentChar <= 10) || currentChar == 13 || currentChar == 32)
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "EOF";
-                currentState = 1; 
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S1; 
             }
             else if (currentChar == '"')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 15;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S15;
             }
             else if (currentChar == '+')
             {
                 buffer += currentChar;
-                return "OP_ADD";
+                return proyecto::Parser::token::PLUS;
             }
             else if (currentChar == '-')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "OP_SUB";
-                currentState = 2; 
+                if (currentChar == '\0') return proyecto::Parser::token::MINUS;
+                currentState = S2; 
             }
             else if (currentChar == '*')
             {
                 buffer += currentChar;
-                return "OP_MUL";
+                return proyecto::Parser::token::MULT;
             }
             else if (currentChar == '/')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "OP_DIV";
-                currentState = 3; 
+                if (currentChar == '\0') return proyecto::Parser::token::DIV;
+                currentState = S3; 
             }
             else if (currentChar == '%')
             {
                 buffer += currentChar;
-                return "OP_MOD";
+                return proyecto::Parser::token::MOD;
             }
             else if (currentChar == '=')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "OP_ASSIGN";
-                currentState = 4; 
+                if (currentChar == '\0') return proyecto::Parser::token::ASSIGN;
+                currentState = S4; 
             }
             else if (currentChar == '!')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "OP_NOT";
-                currentState = 5; 
+                if (currentChar == '\0') return proyecto::Parser::token::NOT;
+                currentState = S5; 
             }
             else if (currentChar == '<')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "OP_LT";
-                currentState = 6; 
+                if (currentChar == '\0') return proyecto::Parser::token::LESS_THAN;
+                currentState = S6; 
              }else if (currentChar == '>')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "OP_GT";
-                currentState = 7; 
+                if (currentChar == '\0') return proyecto::Parser::token::GREATER_THAN;
+                currentState = S7; 
             }
             else if (currentChar == '&')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 8;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S8;
             }
             else if (currentChar == '|')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 9; 
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S9; 
             }
             else if (currentChar == ';')
             {
                 buffer += currentChar;
-                return "SEMICOLON";
+                return proyecto::Parser::token::SEMICOLON;
             }
             else if (currentChar == ',')
             {
                 buffer += currentChar;
-                return "COMMA";
+                return proyecto::Parser::token::COMMA;
             }
             else if (currentChar == '(')
             {
                 buffer += currentChar;
-                return "LPAREN";
+                return proyecto::Parser::token::OP_PAR;
             }
             else if (currentChar == ')')
             {
                 buffer += currentChar;
-                return "RPAREN";
+                return proyecto::Parser::token::CLOSE_PAR;
             }
             else if (currentChar == '{')
             {
                 buffer += currentChar;
-                return "LBRACE";
+                return proyecto::Parser::token::OP_BRACE;
             }
             else if (currentChar == '}')
             {
                 buffer += currentChar;
-                return "RBRACE";
+                return proyecto::Parser::token::CLOSE_BRACE;
             }
             else if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "INTEGER";
-                currentState = 10; 
+                if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
+                currentState = S10; 
             }
             else if (std::isalpha(currentChar) || currentChar == '_')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "IDENTIFIER";
-                currentState = 11;
+                if (currentChar == '\0') return proyecto::Parser::token::IDENTIFIER;
+                currentState = S11;
             }
             else
             {
                 buffer += currentChar;
-                return "ERROR";
+                return proyecto::Parser::token::YYEOF;
             }
             break;
 
-        case 1: 
-            currentState = 0;
+        case S1: 
+            currentState = S0;
             break;
 
-        case 2: 
+        case S2: 
             if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "INTEGER";
-                currentState = 10;
+                if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
+                currentState = S10;
             }
             else
             {
                 index--;
-                return "OP_SUB";
+                return proyecto::Parser::token::MINUS;
             }
             break;
 
-        case 3: 
+        case S3: 
             if (currentChar == '/')
             {
                 buffer = "";
-                currentState = 12; 
+                currentState = S12; 
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "EOF";
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
             }
             else if (currentChar == '*')
             {
                 buffer = "";
-                currentState = 13; 
+                currentState = S13; 
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
             }
             else
             {
                 index--;
-                return "OP_DIV";
+                return proyecto::Parser::token::DIV;
             }
             break;
 
-        case 4: 
+        case S4: 
             if (currentChar == '=')
             {
                 buffer += currentChar;
-                return "OP_EQ";
+                return proyecto::Parser::token::EQUAL;
             }
             else
             {
                 index--;
-                return "OP_ASSIGN";
+                return proyecto::Parser::token::ASSIGN;
             }
             break;
 
-        case 5: 
+        case S5: 
             if (currentChar == '=')
             {
                 buffer += currentChar;
-                return "OP_NE";
+                return proyecto::Parser::token::DISTINCT;
             }
             else
             {
                 index--;
-                return "OP_NOT";
+                return proyecto::Parser::token::NOT;
             }
             break;
 
-        case 6: 
+        case S6: 
             if (currentChar == '=')
             {
                 buffer += currentChar;
-                return "OP_LE";
+                return proyecto::Parser::token::LESS_EQUAL;
             }
             else
             {
                 index--;
-                return "OP_LT";
+                return proyecto::Parser::token::LESS_THAN;
             }
             break;
 
-        case 7: 
+        case S7: 
             if (currentChar == '=')
             {
                 buffer += currentChar;
-                return "OP_GE";
+                return proyecto::Parser::token::GREATER_EQUAL;
             }
             else
             {
                 index--;
-                return "OP_GT";
+                return proyecto::Parser::token::GREATER_THAN;
             }
             break;
 
-        case 8: 
+        case S8: 
             if (currentChar == '&')
             {
                 buffer += currentChar;
-                return "OP_AND";
+                return proyecto::Parser::token::AND;
             }
             else
             {
-                return "ERROR";
+                return proyecto::Parser::token::YYEOF;
             }
             break;
 
-        case 9: 
+        case S9: 
             if (currentChar == '|')
             {
                 buffer += currentChar;
-                return "OP_OR";
+                return proyecto::Parser::token::OR;
             }
             else
             {
-                return "ERROR";
+                return proyecto::Parser::token::YYEOF;
             }
             break;
 
-        case 10: 
+        case S10: 
             if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "INTEGER";
-                currentState = 10;
+                if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
+                currentState = S10;
             }
             else
             {
                 index--;
-                return "INTEGER";
+                return proyecto::Parser::token::INTEGER;
             }
             break;
 
-        case 11: 
+        case S11: 
             if (std::isalnum(currentChar) || currentChar == '_')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0')
                 {
-                  
-                    if (buffer == "if") return "KW_IF";
-                    if (buffer == "else") return "KW_ELSE";
-                    if (buffer == "while") return "KW_WHILE";
-                    if (buffer == "for") return "KW_FOR";
-                    if (buffer == "return") return "KW_RETURN";
-                    if (buffer == "int") return "KW_INT";
-                    if (buffer == "void") return "KW_VOID";
-                    if (buffer == "print") return "KW_PRINT";
-                    return "IDENTIFIER";
+                    if (buffer == "if") return proyecto::Parser::token::KW_IF;
+                    if (buffer == "else") return proyecto::Parser::token::KW_ELSE;
+                    if (buffer == "while") return proyecto::Parser::token::KW_WHILE;
+                    if (buffer == "int") return proyecto::Parser::token::KW_INT;
+                    if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
+                    if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
+                    return proyecto::Parser::token::IDENTIFIER;
                 }
-                currentState = 11;
+                currentState = S11;
             }
             else
             {
                 index--;
-               
-                if (buffer == "if") return "KW_IF";
-                if (buffer == "else") return "KW_ELSE";
-                if (buffer == "while") return "KW_WHILE";
-                if (buffer == "for") return "KW_FOR";
-                if (buffer == "return") return "KW_RETURN";
-                if (buffer == "int") return "KW_INT";
-                if (buffer == "void") return "KW_VOID";
-                if (buffer == "print") return "KW_PRINT";
-                return "IDENTIFIER";
+                if (buffer == "if") return proyecto::Parser::token::KW_IF;
+                if (buffer == "else") return proyecto::Parser::token::KW_ELSE;
+                if (buffer == "while") return proyecto::Parser::token::KW_WHILE;
+                if (buffer == "int") return proyecto::Parser::token::KW_INT;
+                if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
+                if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
+                return proyecto::Parser::token::IDENTIFIER;
             }
             break;
 
-        case 12: 
+        case S12: 
             if (currentChar == '\n' || currentChar == '\r')
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "EOF";
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
                 buffer = "";
-                currentState = 0;
+                currentState = S0;
             }
             else
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "EOF";
-                currentState = 12;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S12;
             }
             break;
 
-        case 13: 
+        case S13: 
             if (currentChar == '*')
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 14;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S14;
             }
             else
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 13;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S13;
             }
             break;
 
-        case 14: 
+        case S14: 
             if (currentChar == '/')
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "EOF";
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
                 buffer = "";
-                currentState = 0;
+                currentState = S0;
             }
             else if (currentChar == '*')
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 14;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S14;
             }
             else
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 13;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S13;
             }
             break;
 
-        case 15: 
+        case S15: 
             if (currentChar == '"')
             {
                 buffer += currentChar;
-                return "STRING_LITERAL";
+                return proyecto::Parser::token::IDENTIFIER;
             }
             else if (currentChar == '\\')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
                 buffer += currentChar; 
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 15;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S15;
             }
             else if (currentChar == '\n')
             {
-                return "ERROR"; 
+                return proyecto::Parser::token::YYEOF; 
             }
             else
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return "ERROR";
-                currentState = 15;
+                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                currentState = S15;
             }
             break;
         }
