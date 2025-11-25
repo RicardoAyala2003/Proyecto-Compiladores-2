@@ -21,6 +21,7 @@
 ")"                              return RPAREN;
 "{"                              return LBRACE;
 "}"                              return RBRACE;
+[[]]                             return BRACKET_IDENT;
 /* String Literals - DEBE IR ANTES de identificadores */
 \"([^\\\"\n]|\\[^\n])*\"         return STRING_LITERAL;
 /* Literales Enteros (con signo opcional) */

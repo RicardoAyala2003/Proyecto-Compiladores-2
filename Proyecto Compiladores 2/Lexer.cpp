@@ -146,6 +146,13 @@ std::string Lexer::getNextToken()
                 buffer += currentChar;
                 return "RBRACE";
             }
+            else if (currentChar == '[')
+            {
+            buffer += currentChar;  
+            currentChar = getNextChar();    
+            currentState= 100;
+               
+            }
             else if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
@@ -166,6 +173,17 @@ std::string Lexer::getNextToken()
                 return "ERROR";
             }
             break;
+
+        case 100:
+              if (ch!= ']')
+            {
+                buffer += currentChar;
+                currentChar = getNextChar();
+               if (currentChar == '\0') return "ERROR";
+                currentState = 100;
+            } else {
+                return "BRACKET_IDENT";
+               }
 
         case 1: 
             currentState = 0;
@@ -419,3 +437,4 @@ std::string Lexer::getNextToken()
         }
     }
 }
+
