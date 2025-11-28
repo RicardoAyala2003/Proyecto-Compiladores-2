@@ -121,6 +121,11 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 buffer += currentChar;
                 return proyecto::Parser::token::SEMICOLON;
             }
+            else if (currentChar == '.')
+            {
+                buffer += currentChar;
+                return proyecto::Parser::token::DOT;
+            }
             else if (currentChar == ',')
             {
                 buffer += currentChar;
@@ -145,6 +150,16 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 return proyecto::Parser::token::CLOSE_BRACE;
+            }
+           else if (currentChar == '[')
+            {
+                buffer += currentChar;
+                return proyecto::Parser::token::OP_BRACKET;
+            }
+           else if (currentChar == ']')
+            {
+                buffer += currentChar;
+                return proyecto::Parser::token::CLOSE_BRACKET;
             }
             else if (std::isdigit(currentChar))
             {
@@ -291,8 +306,13 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 currentChar = getNextChar();
                 if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
                 currentState = S10;
-            }
-            else
+            } else if(currentChar== '.'){
+
+                buffer += currentChar;
+                currentChar = getNextChar();
+                currentState= S20;
+
+            }else
             {
                 index--;
                 return proyecto::Parser::token::INTEGER;
@@ -410,6 +430,21 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 currentState = S15;
             }
             break;
+
+        case S20:
+               if(std::isdigit(currentChar))
+                {
+
+                buffer += currentChar;
+                currentChar = getNextChar();
+                currentState = S20;
+
+                }
+               else {
+                     buffer += currentChar;
+                    return proyecto::Parser::token::FLOAT;
+                    }
+                break;
         }
     }
 }

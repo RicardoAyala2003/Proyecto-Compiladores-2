@@ -13,12 +13,14 @@ void proyecto::Parser::error(const std::string& msg)
 }
 %}
 
+
+
 %define api.namespace{proyecto}
 %define api.parser.class{Parser}
 %define api.value.type variant
 %parse-param {Lexer& lexer}
 
-%token KW_INT KW_IF KW_ELSE KW_WHILE KW_PRINT KW_INPUT IDENTIFIER INTEGER ASSIGN SEMICOLON COMMA OP_PAR CLOSE_PAR OP_BRACE CLOSE_BRACE PLUS MINUS MULT DIV MOD LESS_THAN GREATER_THAN LESS_EQUAL GREATER_EQUAL EQUAL DISTINCT AND OR NOT
+%token DOT FLOAT CLOSE_BRACKET OP_BRACKET KW_INT KW_IF KW_ELSE KW_WHILE KW_PRINT KW_INPUT IDENTIFIER INTEGER ASSIGN SEMICOLON COMMA OP_PAR CLOSE_PAR OP_BRACE CLOSE_BRACE PLUS MINUS MULT DIV MOD LESS_THAN GREATER_THAN LESS_EQUAL GREATER_EQUAL EQUAL DISTINCT AND OR NOT 
 
 %nonassoc THEN
 %nonassoc KW_ELSE
@@ -42,6 +44,7 @@ statement: var_decl
          | while_stmt
          | print_stmt
          | block
+         |multi_array
 ;
 
 var_decl: KW_INT ident_decl opt_ident_list SEMICOLON
@@ -120,6 +123,19 @@ primary: INTEGER
        | IDENTIFIER
        | input_stmt
        | OP_PAR expression CLOSE_PAR
+       | FLOAT
+;
+
+array: OP_BRACKET expression CLOSE_BRACKET
+
+;
+
+multi_array: kw IDENTIFIER array SEMICOLON
+           | array
+;
+
+
+kw: INTEGER | FLOAT
 ;
 
 %%
