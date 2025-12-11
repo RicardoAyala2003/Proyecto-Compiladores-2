@@ -1,0 +1,316 @@
+%option lang = "C++"
+
+%decls %{
+    #include <vector>
+    #include <string>
+    #include <unordered_set>
+    
+    enum class BinaryOperator
+    {
+        PLUS, MINUS, MULT, DIV, MOD,
+        LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL,
+        EQUAL, DISTINCT,
+        AND, OR
+    };
+    
+    enum class UnaryOperator
+    {
+        NOT,
+        NEGATE
+    };
+    
+    std::string BinaryOpToString(BinaryOperator op);
+    std::string UnaryOpToString(UnaryOperator op);
+    
+    class AstNode;
+    using NodeVector = std::vector<AstNode*>;
+    using StdString = std::string;
+    using USet = std::unordered_set<std::string>;
+%}
+
+%{
+    #include "ast.hpp"
+    
+    std::string BinaryOpToString(BinaryOperator op)
+    {
+        switch(op)
+        {
+            case BinaryOperator::PLUS: return "+";
+            case BinaryOperator::MINUS: return "-";
+            case BinaryOperator::MULT: return "*";
+            case BinaryOperator::DIV: return "/";
+            case BinaryOperator::MOD: return "%";
+            case BinaryOperator::LESS_THAN: return "<";
+            case BinaryOperator::GREATER_THAN: return ">";
+            case BinaryOperator::LESS_EQUAL: return "<=";
+            case BinaryOperator::GREATER_EQUAL: return ">=";
+            case BinaryOperator::EQUAL: return "==";
+            case BinaryOperator::DISTINCT: return "!=";
+            case BinaryOperator::AND: return "&&";
+            case BinaryOperator::OR: return "||";
+            default: return "UNKNOWN";
+        }
+    }
+    
+    std::string UnaryOpToString(UnaryOperator op)
+    {
+        switch(op)
+        {
+            case UnaryOperator::NOT: return "!";
+            case UnaryOperator::NEGATE: return "-";
+            default: return "UNKNOWN";
+        }
+    }
+%}
+
+%node AstNode %abstract %typedef
+
+%node Program AstNode =
+{
+    AstNode *stmts;
+}
+
+%node Statement AstNode %abstract
+
+%node StatementList Statement =
+{
+    NodeVector stmts;
+}
+
+%node Expression AstNode %abstract
+
+%node VarExpression Expression =
+{
+    StdString var;
+}
+
+%node IntegerExpr Expression =
+{
+    int value;
+}
+
+%node FloatExpr Expression =
+{
+    float value;
+}
+
+%node BinaryExpr Expression =
+{
+    AstNode *left;
+    BinaryOperator op;
+    AstNode *right;
+}
+
+%node UnaryExpr Expression =
+{
+    UnaryOperator op;
+    AstNode *operand;
+}
+
+%node InputStmt Expression =
+{
+}
+
+%node AssignmentStmt Statement =
+{
+    AstNode *lhs;
+    AstNode *rhs;
+}
+
+%node IfStmt Statement =
+{
+    AstNode *condition;
+    AstNode *thenStmt;
+    AstNode *elseStmt;
+}
+
+%node WhileStmt Statement =
+{
+    AstNode *condition;
+    AstNode *body;
+}
+
+%node PrintStmt Statement =
+{
+    AstNode *expr;
+}
+
+%node BlockStmt Statement =
+{
+    AstNode *stmts;
+}
+
+%node VarDeclStmt Statement =
+{
+    AstNode *firstIdent;
+    AstNode *identList;
+}
+
+%node IdentList AstNode =
+{
+    NodeVector idents;
+}
+
+%node IdentDecl AstNode =
+{
+    AstNode *identifier;
+    AstNode *initExpr;
+}
+
+%node ArrayAccess Expression =
+{
+    AstNode *index;
+}
+
+%node ArrayDeclStmt Statement =
+{
+    AstNode *identifier;
+    AstNode *arrayAccess;
+}
+
+%node ParExpr Expression =
+{
+    AstNode *expr;
+}
+
+
+%operation %virtual StdString toCpp(AstNode *this, USet &varSet)
+
+toCpp(Program)
+{
+    std::string output = "";
+    std::string statements;
+    
+    output += "#include<iostream>\n";
+    output += "#include<fstream>\n";
+    output += "#include<string>\n";
+    output += "int main() {\n";
+    
+    statements += stmts->toCpp(varSet);
+    
+    for(const auto &var : varSet){
+        output += "int " + var + ";\n";
+    }
+    
+    output += statements;
+    output += "return 0;\n}";
+    return output;
+}
+
+toCpp(StatementList)
+{
+    std::string statements;
+    for(auto *stmt : stmts)
+    {
+        statements += stmt->toCpp(varSet) + "\n";
+    }
+    return statements;
+}
+
+toCpp(VarExpression)
+{
+    return var;
+}
+
+toCpp(IntegerExpr)
+{
+    return std::to_string(value);
+}
+
+toCpp(FloatExpr)
+{
+    return std::to_string(value);
+}
+
+toCpp(BinaryExpr)
+{
+    return  left->toCpp(varSet) + " " + BinaryOpToString(op) + " " + right->toCpp(varSet) ;
+}
+
+toCpp(UnaryExpr)
+{
+    return UnaryOpToString(op) + operand->toCpp(varSet);
+}
+
+toCpp(InputStmt)
+{
+    return "cin";
+}
+
+toCpp(AssignmentStmt)
+{
+    varSet.insert(lhs->toCpp(varSet));
+    return lhs->toCpp(varSet) + "=" + rhs->toCpp(varSet) + ";";
+}
+
+toCpp(IfStmt)
+{
+    if(elseStmt == nullptr)
+        return "if (" + condition->toCpp(varSet) + ") " + thenStmt->toCpp(varSet) + " ";
+    else
+        return "if (" + condition->toCpp(varSet) + ") " + thenStmt->toCpp(varSet) + "else " + elseStmt->toCpp(varSet) + " ";
+}
+
+toCpp(WhileStmt)
+{
+    return "while (" + condition->toCpp(varSet) + ") " + body->toCpp(varSet) + " ";
+}
+
+toCpp(PrintStmt)
+{
+    return "cout << " + expr->toCpp(varSet) + " << endl;";
+}
+
+toCpp(BlockStmt)
+{
+    return "{\n" + stmts->toCpp(varSet) + "}\n";
+}
+
+toCpp(VarDeclStmt)
+{
+    std::string result;
+    result += firstIdent->toCpp(varSet);
+    if(identList != nullptr) {
+        result += identList->toCpp(varSet);
+    }
+    return result;
+}
+
+toCpp(IdentList)
+{
+    std::string result;
+    for(auto *ident : idents)
+    {
+        result += ident->toCpp(varSet);
+    }
+    return result;
+}
+
+toCpp(IdentDecl)
+{
+    std::string varName = identifier->toCpp(varSet);
+    varSet.insert(varName);
+    std::string result;
+    if(initExpr != nullptr) {
+        result = varName + "=" + initExpr->toCpp(varSet) + ";";
+    }
+    return result;
+}
+
+toCpp(ArrayAccess)
+{
+    return "[" + index->toCpp(varSet) + "]";
+}
+
+toCpp(ParExpr)
+{
+    return "(" + expr->toCpp(varSet) + ")";
+}
+
+toCpp(ArrayDeclStmt)
+{
+    std::string varName = identifier->toCpp(varSet);
+    std::string arrayPart = arrayAccess->toCpp(varSet);
+    varSet.insert(varName);
+    return "int " + varName + arrayPart + ";";
+}

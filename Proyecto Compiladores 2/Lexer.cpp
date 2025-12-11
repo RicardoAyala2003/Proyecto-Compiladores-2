@@ -150,14 +150,18 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
+                if (currentChar == '\0') {
+                    *yyval = new IntegerExpr(std::stoi(buffer));                    
+                    return proyecto::Parser::token::INTEGER;}
                 currentState = S10; 
             }
             else if (std::isalpha(currentChar) || currentChar == '_')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::IDENTIFIER;
+                if (currentChar == '\0') {
+                    *yyval = new VarExpression(buffer);
+                    return proyecto::Parser::token::IDENTIFIER;}
                 currentState = S11;
             }
             else
@@ -176,7 +180,9 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
+                if (currentChar == '\0') {
+               *yyval = new IntegerExpr(std::stoi(buffer));
+                    return proyecto::Parser::token::INTEGER;}
                 currentState = S10;
             }
             else
@@ -289,12 +295,15 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::INTEGER;
+                if (currentChar == '\0') {
+                    *yyval = new IntegerExpr(std::stoi(buffer));
+                    return proyecto::Parser::token::INTEGER;}
                 currentState = S10;
             }
             else
             {
                 index--;
+                *yyval = new IntegerExpr(std::stoi(buffer));
                 return proyecto::Parser::token::INTEGER;
             }
             break;
@@ -312,7 +321,10 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                     if (buffer == "int") return proyecto::Parser::token::KW_INT;
                     if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
                     if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
+        
+                     *yyval = new VarExpression(buffer);
                     return proyecto::Parser::token::IDENTIFIER;
+                    
                 }
                 currentState = S11;
             }
@@ -325,6 +337,8 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 if (buffer == "int") return proyecto::Parser::token::KW_INT;
                 if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
                 if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
+
+                 *yyval = new VarExpression(buffer);
                 return proyecto::Parser::token::IDENTIFIER;
             }
             break;
@@ -386,6 +400,7 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             if (currentChar == '"')
             {
                 buffer += currentChar;
+                 *yyval = new VarExpression(buffer);
                 return proyecto::Parser::token::IDENTIFIER;
             }
             else if (currentChar == '\\')
