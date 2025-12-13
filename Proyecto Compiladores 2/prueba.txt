@@ -1,3 +1,4 @@
-x = 59879879;
-y = (x+2);
-if (x < y) print(x); else print(y);
+// error_var_no_declarada_expresion.txt
+int x = 10;
+int y = x + 1;
+print(y);

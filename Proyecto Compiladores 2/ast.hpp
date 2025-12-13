@@ -6,6 +6,8 @@
     #include <vector>
     #include <string>
     #include <unordered_set>
+    #include <unordered_map>
+    #include <stdexcept>
     
     enum class BinaryOperator
     {
@@ -28,7 +30,14 @@
     using NodeVector = std::vector<AstNode*>;
     using StdString = std::string;
     using USet = std::unordered_set<std::string>;
-#line 32 "ast.hpp"
+    using VarMap = std::unordered_map<std::string, bool>;
+
+struct Location {
+    int line;
+    int column;
+    Location(int l = 0, int c = 0) : line(l), column(c) {}
+};
+#line 41 "ast.hpp"
 
 #include <new>
 
@@ -91,7 +100,7 @@ private:
 	struct YYNODESTATE_block *blocks__;
 	struct YYNODESTATE_push *push_stack__;
 	int used__;
-#line 95 "ast.hpp"
+#line 104 "ast.hpp"
 private:
 
 	static YYNODESTATE *state__;
@@ -434,11 +443,13 @@ class VarExpression : public Expression
 {
 public:
 
-	VarExpression(StdString var);
+	VarExpression(StdString var, int line, int column);
 
 public:
 
 	StdString var;
+	int line;
+	int column;
 
 	virtual StdString toCpp(USet & varSet);
 

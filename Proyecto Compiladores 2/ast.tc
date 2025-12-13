@@ -4,6 +4,8 @@
     #include <vector>
     #include <string>
     #include <unordered_set>
+    #include <unordered_map>
+    #include <stdexcept>
     
     enum class BinaryOperator
     {
@@ -26,6 +28,13 @@
     using NodeVector = std::vector<AstNode*>;
     using StdString = std::string;
     using USet = std::unordered_set<std::string>;
+    using VarMap = std::unordered_map<std::string, bool>;
+
+struct Location {
+    int line;
+    int column;
+    Location(int l = 0, int c = 0) : line(l), column(c) {}
+};
 %}
 
 %{
@@ -61,6 +70,25 @@
             default: return "UNKNOWN";
         }
     }
+    
+    VarMap declaredVars;
+    bool usesInputFunction = false;
+    
+ void checkVarDeclared(const std::string& var, int line, int column) {
+    if (declaredVars.find(var) == declaredVars.end()) {
+        throw std::runtime_error("Error Semántico [Línea " + std::to_string(line) + 
+                               ", Columna " + std::to_string(column) + 
+                               "]: Variable '" + var + "' no declarada");
+    }
+}
+
+void checkVarNotRedeclared(const std::string& var, int line, int column) {
+    if (declaredVars.find(var) != declaredVars.end()) {
+        throw std::runtime_error("Error Semántico [Línea " + std::to_string(line) + 
+                               ", Columna " + std::to_string(column) + 
+                               "]: Variable '" + var + "' ya fue declarada");
+    }
+}
 %}
 
 %node AstNode %abstract %typedef
@@ -82,6 +110,8 @@
 %node VarExpression Expression =
 {
     StdString var;
+    int line;
+    int column;
 }
 
 %node IntegerExpr Expression =
@@ -173,25 +203,36 @@
     AstNode *expr;
 }
 
-
 %operation %virtual StdString toCpp(AstNode *this, USet &varSet)
 
 toCpp(Program)
 {
+    declaredVars.clear();
+    usesInputFunction = false;
     std::string output = "";
     std::string statements;
-    
+
     output += "#include<iostream>\n";
     output += "#include<fstream>\n";
-    output += "#include<string>\n";
+    
+
+    statements += stmts->toCpp(varSet); 
+    
+
+    if (usesInputFunction) {
+        output += "int input() {\n";
+        output += "int x;\n";
+        output += "std::cin >> x;\n";
+        output += "return x;\n";
+        output += "}\n";
+    }
+
     output += "int main() {\n";
-    
-    statements += stmts->toCpp(varSet);
-    
+
     for(const auto &var : varSet){
         output += "int " + var + ";\n";
     }
-    
+
     output += statements;
     output += "return 0;\n}";
     return output;
@@ -209,6 +250,7 @@ toCpp(StatementList)
 
 toCpp(VarExpression)
 {
+    checkVarDeclared(var, line, column);
     return var;
 }
 
@@ -224,7 +266,14 @@ toCpp(FloatExpr)
 
 toCpp(BinaryExpr)
 {
-    return  left->toCpp(varSet) + " " + BinaryOpToString(op) + " " + right->toCpp(varSet) ;
+    std::string leftCode = left->toCpp(varSet);
+    std::string rightCode = right->toCpp(varSet);
+    
+    if (op == BinaryOperator::DIV || op == BinaryOperator::MOD) {
+        return leftCode + " " + BinaryOpToString(op) + " " + rightCode;
+    }
+    
+    return leftCode + " " + BinaryOpToString(op) + " " + rightCode;
 }
 
 toCpp(UnaryExpr)
@@ -234,13 +283,23 @@ toCpp(UnaryExpr)
 
 toCpp(InputStmt)
 {
-    return "cin";
+    usesInputFunction = true;
+    return "input()";
 }
 
 toCpp(AssignmentStmt)
 {
-    varSet.insert(lhs->toCpp(varSet));
-    return lhs->toCpp(varSet) + "=" + rhs->toCpp(varSet) + ";";
+    VarExpression* varExpr = reinterpret_cast<VarExpression*>(lhs);
+    std::string varName = varExpr->var;
+    
+    if (declaredVars.find(varName) == declaredVars.end()) {
+        throw std::runtime_error("Error Semántico [Línea " + std::to_string(varExpr->line) + 
+                               ", Columna " + std::to_string(varExpr->column) + 
+                               "]: Variable '" + varName + "' usada sin declarar");
+    }
+    
+    varSet.insert(varName);
+    return varName + "=" + rhs->toCpp(varSet) + ";";
 }
 
 toCpp(IfStmt)
@@ -288,12 +347,18 @@ toCpp(IdentList)
 
 toCpp(IdentDecl)
 {
-    std::string varName = identifier->toCpp(varSet);
+    VarExpression* varExpr = reinterpret_cast<VarExpression*>(identifier);
+    std::string varName = varExpr->var;
+    
+    checkVarNotRedeclared(varName, varExpr->line, varExpr->column);
+    
+    declaredVars[varName] = true;
     varSet.insert(varName);
+    
     std::string result;
     if(initExpr != nullptr) {
         result = varName + "=" + initExpr->toCpp(varSet) + ";";
-    }
+    } 
     return result;
 }
 
@@ -309,8 +374,14 @@ toCpp(ParExpr)
 
 toCpp(ArrayDeclStmt)
 {
-    std::string varName = identifier->toCpp(varSet);
+    VarExpression* varExpr = reinterpret_cast<VarExpression*>(identifier);
+    std::string varName = varExpr->var;
     std::string arrayPart = arrayAccess->toCpp(varSet);
+    
+    checkVarNotRedeclared(varName, varExpr->line, varExpr->column);
+    
+    declaredVars[varName] = true;
     varSet.insert(varName);
+    
     return "int " + varName + arrayPart + ";";
 }

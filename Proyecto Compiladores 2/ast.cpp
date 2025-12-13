@@ -1,5 +1,5 @@
 /* ast.cpp.  Generated automatically by treecc */
-#line 31 "ast.tc"
+#line 40 "ast.tc"
 
     #include "ast.hpp"
     
@@ -33,7 +33,26 @@
             default: return "UNKNOWN";
         }
     }
-#line 37 "ast.cpp"
+    
+    VarMap declaredVars;
+    bool usesInputFunction = false;
+    
+ void checkVarDeclared(const std::string& var, int line, int column) {
+    if (declaredVars.find(var) == declaredVars.end()) {
+        throw std::runtime_error("Error Semántico [Línea " + std::to_string(line) + 
+                               ", Columna " + std::to_string(column) + 
+                               "]: Variable '" + var + "' no declarada");
+    }
+}
+
+void checkVarNotRedeclared(const std::string& var, int line, int column) {
+    if (declaredVars.find(var) != declaredVars.end()) {
+        throw std::runtime_error("Error Semántico [Línea " + std::to_string(line) + 
+                               ", Columna " + std::to_string(column) + 
+                               "]: Variable '" + var + "' ya fue declarada");
+    }
+}
+#line 56 "ast.cpp"
 
 #include <cstddef>
 
@@ -314,7 +333,7 @@ long YYNODESTATE::currLinenum() const
 }
 
 #endif
-#line 318 "ast.cpp"
+#line 337 "ast.cpp"
 void *AstNode::operator new(size_t size__)
 {
 	return YYNODESTATE::getState()->alloc(size__);
@@ -363,27 +382,39 @@ Program::~Program()
 }
 
 StdString Program::toCpp(USet & varSet)
-#line 180 "ast.tc"
+#line 209 "ast.tc"
 {
+    declaredVars.clear();
+    usesInputFunction = false;
     std::string output = "";
     std::string statements;
-    
+
     output += "#include<iostream>\n";
     output += "#include<fstream>\n";
-    output += "#include<string>\n";
+    
+
+    statements += stmts->toCpp(varSet); 
+    
+
+    if (usesInputFunction) {
+        output += "int input() {\n";
+        output += "int x;\n";
+        output += "std::cin >> x;\n";
+        output += "return x;\n";
+        output += "}\n";
+    }
+
     output += "int main() {\n";
-    
-    statements += stmts->toCpp(varSet);
-    
+
     for(const auto &var : varSet){
         output += "int " + var + ";\n";
     }
-    
+
     output += statements;
     output += "return 0;\n}";
     return output;
 }
-#line 387 "ast.cpp"
+#line 418 "ast.cpp"
 
 int Program::isA(int kind) const
 {
@@ -459,7 +490,7 @@ IdentList::~IdentList()
 }
 
 StdString IdentList::toCpp(USet & varSet)
-#line 280 "ast.tc"
+#line 339 "ast.tc"
 {
     std::string result;
     for(auto *ident : idents)
@@ -468,7 +499,7 @@ StdString IdentList::toCpp(USet & varSet)
     }
     return result;
 }
-#line 472 "ast.cpp"
+#line 503 "ast.cpp"
 
 int IdentList::isA(int kind) const
 {
@@ -497,17 +528,23 @@ IdentDecl::~IdentDecl()
 }
 
 StdString IdentDecl::toCpp(USet & varSet)
-#line 290 "ast.tc"
+#line 349 "ast.tc"
 {
-    std::string varName = identifier->toCpp(varSet);
+    VarExpression* varExpr = reinterpret_cast<VarExpression*>(identifier);
+    std::string varName = varExpr->var;
+    
+    checkVarNotRedeclared(varName, varExpr->line, varExpr->column);
+    
+    declaredVars[varName] = true;
     varSet.insert(varName);
+    
     std::string result;
     if(initExpr != nullptr) {
         result = varName + "=" + initExpr->toCpp(varSet) + ";";
-    }
+    } 
     return result;
 }
-#line 511 "ast.cpp"
+#line 548 "ast.cpp"
 
 int IdentDecl::isA(int kind) const
 {
@@ -535,7 +572,7 @@ StatementList::~StatementList()
 }
 
 StdString StatementList::toCpp(USet & varSet)
-#line 201 "ast.tc"
+#line 242 "ast.tc"
 {
     std::string statements;
     for(auto *stmt : stmts)
@@ -544,7 +581,7 @@ StdString StatementList::toCpp(USet & varSet)
     }
     return statements;
 }
-#line 548 "ast.cpp"
+#line 585 "ast.cpp"
 
 int StatementList::isA(int kind) const
 {
@@ -573,12 +610,21 @@ AssignmentStmt::~AssignmentStmt()
 }
 
 StdString AssignmentStmt::toCpp(USet & varSet)
-#line 241 "ast.tc"
+#line 291 "ast.tc"
 {
-    varSet.insert(lhs->toCpp(varSet));
-    return lhs->toCpp(varSet) + "=" + rhs->toCpp(varSet) + ";";
+    VarExpression* varExpr = reinterpret_cast<VarExpression*>(lhs);
+    std::string varName = varExpr->var;
+    
+    if (declaredVars.find(varName) == declaredVars.end()) {
+        throw std::runtime_error("Error Semántico [Línea " + std::to_string(varExpr->line) + 
+                               ", Columna " + std::to_string(varExpr->column) + 
+                               "]: Variable '" + varName + "' usada sin declarar");
+    }
+    
+    varSet.insert(varName);
+    return varName + "=" + rhs->toCpp(varSet) + ";";
 }
-#line 582 "ast.cpp"
+#line 628 "ast.cpp"
 
 int AssignmentStmt::isA(int kind) const
 {
@@ -608,14 +654,14 @@ IfStmt::~IfStmt()
 }
 
 StdString IfStmt::toCpp(USet & varSet)
-#line 247 "ast.tc"
+#line 306 "ast.tc"
 {
     if(elseStmt == nullptr)
         return "if (" + condition->toCpp(varSet) + ") " + thenStmt->toCpp(varSet) + " ";
     else
         return "if (" + condition->toCpp(varSet) + ") " + thenStmt->toCpp(varSet) + "else " + elseStmt->toCpp(varSet) + " ";
 }
-#line 619 "ast.cpp"
+#line 665 "ast.cpp"
 
 int IfStmt::isA(int kind) const
 {
@@ -644,11 +690,11 @@ WhileStmt::~WhileStmt()
 }
 
 StdString WhileStmt::toCpp(USet & varSet)
-#line 255 "ast.tc"
+#line 314 "ast.tc"
 {
     return "while (" + condition->toCpp(varSet) + ") " + body->toCpp(varSet) + " ";
 }
-#line 652 "ast.cpp"
+#line 698 "ast.cpp"
 
 int WhileStmt::isA(int kind) const
 {
@@ -676,11 +722,11 @@ PrintStmt::~PrintStmt()
 }
 
 StdString PrintStmt::toCpp(USet & varSet)
-#line 260 "ast.tc"
+#line 319 "ast.tc"
 {
     return "cout << " + expr->toCpp(varSet) + " << endl;";
 }
-#line 684 "ast.cpp"
+#line 730 "ast.cpp"
 
 int PrintStmt::isA(int kind) const
 {
@@ -708,11 +754,11 @@ BlockStmt::~BlockStmt()
 }
 
 StdString BlockStmt::toCpp(USet & varSet)
-#line 265 "ast.tc"
+#line 324 "ast.tc"
 {
     return "{\n" + stmts->toCpp(varSet) + "}\n";
 }
-#line 716 "ast.cpp"
+#line 762 "ast.cpp"
 
 int BlockStmt::isA(int kind) const
 {
@@ -741,7 +787,7 @@ VarDeclStmt::~VarDeclStmt()
 }
 
 StdString VarDeclStmt::toCpp(USet & varSet)
-#line 270 "ast.tc"
+#line 329 "ast.tc"
 {
     std::string result;
     result += firstIdent->toCpp(varSet);
@@ -750,7 +796,7 @@ StdString VarDeclStmt::toCpp(USet & varSet)
     }
     return result;
 }
-#line 754 "ast.cpp"
+#line 800 "ast.cpp"
 
 int VarDeclStmt::isA(int kind) const
 {
@@ -779,14 +825,20 @@ ArrayDeclStmt::~ArrayDeclStmt()
 }
 
 StdString ArrayDeclStmt::toCpp(USet & varSet)
-#line 311 "ast.tc"
+#line 376 "ast.tc"
 {
-    std::string varName = identifier->toCpp(varSet);
+    VarExpression* varExpr = reinterpret_cast<VarExpression*>(identifier);
+    std::string varName = varExpr->var;
     std::string arrayPart = arrayAccess->toCpp(varSet);
+    
+    checkVarNotRedeclared(varName, varExpr->line, varExpr->column);
+    
+    declaredVars[varName] = true;
     varSet.insert(varName);
+    
     return "int " + varName + arrayPart + ";";
 }
-#line 790 "ast.cpp"
+#line 842 "ast.cpp"
 
 int ArrayDeclStmt::isA(int kind) const
 {
@@ -801,11 +853,13 @@ const char *ArrayDeclStmt::getKindName() const
 	return "ArrayDeclStmt";
 }
 
-VarExpression::VarExpression(StdString var)
+VarExpression::VarExpression(StdString var, int line, int column)
 	: Expression()
 {
 	this->kind__ = VarExpression_kind;
 	this->var = var;
+	this->line = line;
+	this->column = column;
 }
 
 VarExpression::~VarExpression()
@@ -814,11 +868,12 @@ VarExpression::~VarExpression()
 }
 
 StdString VarExpression::toCpp(USet & varSet)
-#line 211 "ast.tc"
+#line 252 "ast.tc"
 {
+    checkVarDeclared(var, line, column);
     return var;
 }
-#line 822 "ast.cpp"
+#line 877 "ast.cpp"
 
 int VarExpression::isA(int kind) const
 {
@@ -846,11 +901,11 @@ IntegerExpr::~IntegerExpr()
 }
 
 StdString IntegerExpr::toCpp(USet & varSet)
-#line 216 "ast.tc"
+#line 258 "ast.tc"
 {
     return std::to_string(value);
 }
-#line 854 "ast.cpp"
+#line 909 "ast.cpp"
 
 int IntegerExpr::isA(int kind) const
 {
@@ -878,11 +933,11 @@ FloatExpr::~FloatExpr()
 }
 
 StdString FloatExpr::toCpp(USet & varSet)
-#line 221 "ast.tc"
+#line 263 "ast.tc"
 {
     return std::to_string(value);
 }
-#line 886 "ast.cpp"
+#line 941 "ast.cpp"
 
 int FloatExpr::isA(int kind) const
 {
@@ -912,11 +967,18 @@ BinaryExpr::~BinaryExpr()
 }
 
 StdString BinaryExpr::toCpp(USet & varSet)
-#line 226 "ast.tc"
+#line 268 "ast.tc"
 {
-    return  left->toCpp(varSet) + " " + BinaryOpToString(op) + " " + right->toCpp(varSet) ;
+    std::string leftCode = left->toCpp(varSet);
+    std::string rightCode = right->toCpp(varSet);
+    
+    if (op == BinaryOperator::DIV || op == BinaryOperator::MOD) {
+        return leftCode + " " + BinaryOpToString(op) + " " + rightCode;
+    }
+    
+    return leftCode + " " + BinaryOpToString(op) + " " + rightCode;
 }
-#line 920 "ast.cpp"
+#line 982 "ast.cpp"
 
 int BinaryExpr::isA(int kind) const
 {
@@ -945,11 +1007,11 @@ UnaryExpr::~UnaryExpr()
 }
 
 StdString UnaryExpr::toCpp(USet & varSet)
-#line 231 "ast.tc"
+#line 280 "ast.tc"
 {
     return UnaryOpToString(op) + operand->toCpp(varSet);
 }
-#line 953 "ast.cpp"
+#line 1015 "ast.cpp"
 
 int UnaryExpr::isA(int kind) const
 {
@@ -976,11 +1038,12 @@ InputStmt::~InputStmt()
 }
 
 StdString InputStmt::toCpp(USet & varSet)
-#line 236 "ast.tc"
+#line 285 "ast.tc"
 {
-    return "cin";
+    usesInputFunction = true;
+    return "input()";
 }
-#line 984 "ast.cpp"
+#line 1047 "ast.cpp"
 
 int InputStmt::isA(int kind) const
 {
@@ -1008,11 +1071,11 @@ ArrayAccess::~ArrayAccess()
 }
 
 StdString ArrayAccess::toCpp(USet & varSet)
-#line 301 "ast.tc"
+#line 366 "ast.tc"
 {
     return "[" + index->toCpp(varSet) + "]";
 }
-#line 1016 "ast.cpp"
+#line 1079 "ast.cpp"
 
 int ArrayAccess::isA(int kind) const
 {
@@ -1040,11 +1103,11 @@ ParExpr::~ParExpr()
 }
 
 StdString ParExpr::toCpp(USet & varSet)
-#line 306 "ast.tc"
+#line 371 "ast.tc"
 {
     return "(" + expr->toCpp(varSet) + ")";
 }
-#line 1048 "ast.cpp"
+#line 1111 "ast.cpp"
 
 int ParExpr::isA(int kind) const
 {

@@ -1,12 +1,21 @@
 #include "Lexer.hpp"
 #include <cctype>
+#include <limits>
+#include <stdexcept>
 
-Lexer::Lexer(std::vector<char> input) : characters(input), index(0), buffer("") {}
+Lexer::Lexer(std::vector<char> input) : characters(input), index(0), buffer(""), line(1), column(1) {}
 
 char Lexer::getNextChar()
 {
     if (index >= characters.size()) return '\0';
-    return characters[index++];
+    char c = characters[index++];
+    if (c == '\n') {
+        line++;
+        column = 1;
+    } else {
+        column++;
+    }
+    return c;
 }
 
 char Lexer::checkNextChar()
@@ -18,6 +27,32 @@ char Lexer::checkNextChar()
 std::string Lexer::getBuffer()
 {
     return buffer;
+}
+
+void Lexer::throwLexicalError(const std::string& msg)
+{
+    throw std::runtime_error("Error Léxico [Línea " + std::to_string(line) + 
+                           ", Columna " + std::to_string(column) + "]: " + msg);
+}
+
+int Lexer::validateInteger(const std::string& str)
+{
+    try {
+        long long value = std::stoll(str);
+        if (value > std::numeric_limits<int>::max()) {
+            throwLexicalError("Literal entero fuera de rango: " + str + 
+                            " (máximo: " + std::to_string(std::numeric_limits<int>::max()) + ")");
+        }
+        if (value < std::numeric_limits<int>::min()) {
+            throwLexicalError("Literal entero fuera de rango: " + str + 
+                            " (mínimo: " + std::to_string(std::numeric_limits<int>::min()) + ")");
+        }
+        return static_cast<int>(value);
+    }
+    catch (const std::out_of_range&) {
+        throwLexicalError("Literal entero fuera de rango: " + str);
+    }
+    return 0;
 }
 
 int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
@@ -43,7 +78,8 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Cadena sin cerrar");
                 currentState = S15;
             }
             else if (currentChar == '+')
@@ -95,7 +131,8 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 currentChar = getNextChar();
                 if (currentChar == '\0') return proyecto::Parser::token::LESS_THAN;
                 currentState = S6; 
-             }else if (currentChar == '>')
+             }
+            else if (currentChar == '>')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
@@ -106,14 +143,16 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Se esperaba '&' después de '&'");
                 currentState = S8;
             }
             else if (currentChar == '|')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Se esperaba '|' después de '|'");
                 currentState = S9; 
             }
             else if (currentChar == ';')
@@ -146,28 +185,42 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 buffer += currentChar;
                 return proyecto::Parser::token::CLOSE_BRACE;
             }
+            else if (currentChar == '[')
+            {
+                buffer += currentChar;
+                return proyecto::Parser::token::OP_BRACKET;
+            }
+            else if (currentChar == ']')
+            {
+                buffer += currentChar;
+                return proyecto::Parser::token::CLOSE_BRACKET;
+            }
             else if (std::isdigit(currentChar))
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') {
-                    *yyval = new IntegerExpr(std::stoi(buffer));                    
-                    return proyecto::Parser::token::INTEGER;}
+                    int value = validateInteger(buffer);
+                    *yyval = new IntegerExpr(value);                    
+                    return proyecto::Parser::token::INTEGER;
+                }
                 currentState = S10; 
             }
-            else if (std::isalpha(currentChar) || currentChar == '_')
-            {
-                buffer += currentChar;
-                currentChar = getNextChar();
-                if (currentChar == '\0') {
-                    *yyval = new VarExpression(buffer);
-                    return proyecto::Parser::token::IDENTIFIER;}
-                currentState = S11;
-            }
+else if (std::isalpha(currentChar) || currentChar == '_')
+{
+    buffer += currentChar;
+    int startColumn = column - 1;  
+    currentChar = getNextChar();
+    if (currentChar == '\0') {
+        VarExpression* var = new VarExpression(buffer, line, startColumn);  
+        *yyval = var;
+        return proyecto::Parser::token::IDENTIFIER;
+    }
+    currentState = S11;
+}
             else
             {
-                buffer += currentChar;
-                return proyecto::Parser::token::YYEOF;
+                throwLexicalError("Carácter inválido: '" + std::string(1, currentChar) + "'");
             }
             break;
 
@@ -181,13 +234,16 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') {
-               *yyval = new IntegerExpr(std::stoi(buffer));
-                    return proyecto::Parser::token::INTEGER;}
+                    int value = validateInteger(buffer);
+                    *yyval = new IntegerExpr(value);
+                    return proyecto::Parser::token::INTEGER;
+                }
                 currentState = S10;
             }
             else
             {
                 index--;
+                column--;
                 return proyecto::Parser::token::MINUS;
             }
             break;
@@ -205,11 +261,13 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 buffer = "";
                 currentState = S13; 
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Comentario multilínea sin cerrar");
             }
             else
             {
                 index--;
+                column--;
                 return proyecto::Parser::token::DIV;
             }
             break;
@@ -223,6 +281,7 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             else
             {
                 index--;
+                column--;
                 return proyecto::Parser::token::ASSIGN;
             }
             break;
@@ -236,6 +295,7 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             else
             {
                 index--;
+                column--;
                 return proyecto::Parser::token::NOT;
             }
             break;
@@ -249,6 +309,7 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             else
             {
                 index--;
+                column--;
                 return proyecto::Parser::token::LESS_THAN;
             }
             break;
@@ -262,6 +323,7 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             else
             {
                 index--;
+                column--;
                 return proyecto::Parser::token::GREATER_THAN;
             }
             break;
@@ -274,7 +336,8 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             }
             else
             {
-                return proyecto::Parser::token::YYEOF;
+                throwLexicalError("Se esperaba '&' después de '&', se encontró '" + 
+                                std::string(1, currentChar) + "'");
             }
             break;
 
@@ -286,7 +349,8 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             }
             else
             {
-                return proyecto::Parser::token::YYEOF;
+                throwLexicalError("Se esperaba '|' después de '|', se encontró '" + 
+                                std::string(1, currentChar) + "'");
             }
             break;
 
@@ -296,15 +360,47 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
                 buffer += currentChar;
                 currentChar = getNextChar();
                 if (currentChar == '\0') {
-                    *yyval = new IntegerExpr(std::stoi(buffer));
-                    return proyecto::Parser::token::INTEGER;}
+                    int value = validateInteger(buffer);
+                    *yyval = new IntegerExpr(value);
+                    return proyecto::Parser::token::INTEGER;
+                }
                 currentState = S10;
+            }
+            else if (currentChar == '.')
+            {
+                buffer += currentChar;
+                currentChar = getNextChar();
+                if (currentChar == '\0') 
+                    throwLexicalError("Número flotante incompleto");
+                currentState = S20;
             }
             else
             {
                 index--;
-                *yyval = new IntegerExpr(std::stoi(buffer));
+                column--;
+                int value = validateInteger(buffer);
+                *yyval = new IntegerExpr(value);
                 return proyecto::Parser::token::INTEGER;
+            }
+            break;
+
+        case S20:
+            if (std::isdigit(currentChar))
+            {
+                buffer += currentChar;
+                currentChar = getNextChar();
+                if (currentChar == '\0') {
+                    *yyval = new FloatExpr(std::stof(buffer));
+                    return proyecto::Parser::token::FLOAT;
+                }
+                currentState = S20;
+            }
+            else
+            {
+                index--;
+                column--;
+                *yyval = new FloatExpr(std::stof(buffer));
+                return proyecto::Parser::token::FLOAT;
             }
             break;
 
@@ -313,34 +409,36 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0')
-                {
-                    if (buffer == "if") return proyecto::Parser::token::KW_IF;
-                    if (buffer == "else") return proyecto::Parser::token::KW_ELSE;
-                    if (buffer == "while") return proyecto::Parser::token::KW_WHILE;
-                    if (buffer == "int") return proyecto::Parser::token::KW_INT;
-                    if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
-                    if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
-        
-                     *yyval = new VarExpression(buffer);
-                    return proyecto::Parser::token::IDENTIFIER;
-                    
-                }
+if (currentChar == '\0')
+{
+    if (buffer == "if") return proyecto::Parser::token::KW_IF;
+    if (buffer == "else") return proyecto::Parser::token::KW_ELSE;
+    if (buffer == "while") return proyecto::Parser::token::KW_WHILE;
+    if (buffer == "int") return proyecto::Parser::token::KW_INT;
+    if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
+    if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
+
+    VarExpression* var = new VarExpression(buffer, line, column - buffer.length());  // ← FIX
+    *yyval = var;
+    return proyecto::Parser::token::IDENTIFIER;
+}
                 currentState = S11;
             }
-            else
-            {
-                index--;
-                if (buffer == "if") return proyecto::Parser::token::KW_IF;
-                if (buffer == "else") return proyecto::Parser::token::KW_ELSE;
-                if (buffer == "while") return proyecto::Parser::token::KW_WHILE;
-                if (buffer == "int") return proyecto::Parser::token::KW_INT;
-                if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
-                if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
+else
+{
+    index--;
+    column--;
+    if (buffer == "if") return proyecto::Parser::token::KW_IF;
+    if (buffer == "else") return proyecto::Parser::token::KW_ELSE;
+    if (buffer == "while") return proyecto::Parser::token::KW_WHILE;
+    if (buffer == "int") return proyecto::Parser::token::KW_INT;
+    if (buffer == "print") return proyecto::Parser::token::KW_PRINT;
+    if (buffer == "input") return proyecto::Parser::token::KW_INPUT;
 
-                 *yyval = new VarExpression(buffer);
-                return proyecto::Parser::token::IDENTIFIER;
-            }
+    VarExpression* var = new VarExpression(buffer, line, column - buffer.length() + 1);  // ← FIX
+    *yyval = var;
+    return proyecto::Parser::token::IDENTIFIER;
+}
             break;
 
         case S12: 
@@ -363,13 +461,15 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             if (currentChar == '*')
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Comentario multilínea sin cerrar");
                 currentState = S14;
             }
             else
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Comentario multilínea sin cerrar");
                 currentState = S13;
             }
             break;
@@ -385,43 +485,49 @@ int Lexer::getNextToken(proyecto::Parser::value_type *yyval)
             else if (currentChar == '*')
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Comentario multilínea sin cerrar");
                 currentState = S14;
             }
             else
             {
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Comentario multilínea sin cerrar");
                 currentState = S13;
             }
             break;
 
         case S15: 
-            if (currentChar == '"')
-            {
-                buffer += currentChar;
-                 *yyval = new VarExpression(buffer);
-                return proyecto::Parser::token::IDENTIFIER;
-            }
+if (currentChar == '"')
+{
+    buffer += currentChar;
+    VarExpression* var = new VarExpression(buffer, line, column - buffer.length());  // ← FIX
+    *yyval = var;
+    return proyecto::Parser::token::IDENTIFIER;
+}
             else if (currentChar == '\\')
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Cadena sin cerrar");
                 buffer += currentChar; 
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Cadena sin cerrar");
                 currentState = S15;
             }
             else if (currentChar == '\n')
             {
-                return proyecto::Parser::token::YYEOF; 
+                throwLexicalError("Cadena sin cerrar antes del salto de línea");
             }
             else
             {
                 buffer += currentChar;
                 currentChar = getNextChar();
-                if (currentChar == '\0') return proyecto::Parser::token::YYEOF;
+                if (currentChar == '\0') 
+                    throwLexicalError("Cadena sin cerrar");
                 currentState = S15;
             }
             break;

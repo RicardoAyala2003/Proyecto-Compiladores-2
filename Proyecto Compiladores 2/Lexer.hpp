@@ -14,12 +14,23 @@ private:
     std::vector<char> characters;
     int index;
     std::string buffer;
+    int line;
+    int column;
+
     char getNextChar();
     char checkNextChar();
+    void throwLexicalError(const std::string& msg);
+    int validateInteger(const std::string& str);
+
+
 public:
     Lexer(std::vector<char> input);
     std::string getBuffer();
     int getNextToken(proyecto::Parser::value_type *yyval);
+
+    int getLine() const { return line; }
+    int getColumn() const { return column; }
+
 };
 
 #endif
