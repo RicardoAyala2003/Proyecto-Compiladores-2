@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
-project(LexerProject)
+project(ProyectoCompiladores2)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Descargar doctest usando FetchContent
@@ -13,24 +13,29 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
-# Librería del Lexer
-add_library(lexer_lib
-    Lexer.cpp
-    Lexer.hpp
+# Archivos fuente del proyecto
+set(SOURCES
+    ../ast.cpp
+    ../Lexer.cpp
+    ../Parser.cpp
 )
 
-# Ejecutable principal
-add_executable(lexer_main
-    main.cpp
-)
-target_link_libraries(lexer_main lexer_lib)
+# Librería del proyecto
+add_library(proyecto_lib ${SOURCES})
 
-# Ejecutable de tests
-add_executable(lexer_tests
-    tests.cpp
-)
-target_link_libraries(lexer_tests lexer_lib doctest::doctest)
+# Incluye headers
+target_include_directories(proyecto_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Habilitar testing
+# Tests con doctest
+add_executable(proyecto_tests
+    maindoctest.cpp
+)
+target_link_libraries(proyecto_tests proyecto_lib doctest::doctest)
+
+# Habilitar CTest
 enable_testing()
-add_test(NAME lexer_tests COMMAND lexer_tests)
+add_test(NAME proyecto_tests COMMAND proyecto_tests)
+
+# Opcional: warnings
+target_compile_options(proyecto_lib PRIVATE -Wall -Wextra -pedantic)
+target_compile_options(proyecto_tests PRIVATE -Wall -Wextra -pedantic)
