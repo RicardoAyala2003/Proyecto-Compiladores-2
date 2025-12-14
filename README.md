@@ -1,58 +1,55 @@
-Proyecto Compiladores 2
------------------------
+# Proyecto Compiladores 2
+Compilador que traduce un lenguaje imperativo simplificado a C++.
 
-Este proyecto consiste en el desarrollo de un compilador educativo en C++.
-Incluye las fases principales de un compilador: análisis léxico, sintáctico,
-semántico y generación de código intermedio.
-
-Estructura sugerida de carpetas
--------------------------------
-Proyecto-Compiladores-2/
+## Estructura
+```
+Proyecto Compiladores 2/
 ├── CMakeLists.txt
-├── src/
-│   ├── lexer/
-│   ├── parser/
-│   ├── semantic/
-│   ├── codegen/
-│   └── main.cpp
-├── include/
-├── examples/
-├── tests/
-├── docs/
-├── build/
-└── README.md
+├── ast.tc                   # Definición del AST
+├── gramatica.y              # Gramática (Bison)
+├── Lexer.cpp / Lexer.hpp    # Analizador léxico
+├── main.cpp
+├── doctest/                 # Tests
+│   ├── CMakeLists.txt
+│   └── maindoctest.cpp
+└── ejemplos/                # 96 casos de prueba
+```
 
-Requisitos
------------
-- C++17 o superior
-- CMake 3.15+
-- Compilador: GCC, Clang o MSVC
+**Archivos generados:** `ast.cpp`, `ast.hpp`, `Parser.cpp`, `Parser.hpp`
 
-Instalación y compilación
---------------------------
-mkdir build
-cd build
-cmake ..
-cmake --build .
+## Requisitos
+```bash
+sudo apt install build-essential cmake bison treecc
+```
 
-Uso
----
-Ejemplo de ejecución:
-./build/Compilador examples/programa_ejemplo.lang
+## Compilación
+```bash
+# Configurar
+cmake -B build -S .
 
-Tests
------
-Los tests pueden implementarse con Catch2 o GoogleTest.
+# Generar y compilar
+clear && bison -o Parser.cpp --header=Parser.hpp gramatica.y && treecc -o ast.cpp -h ast.hpp ast.tc && cmake --build build
+```
 
-Ejemplo:
-ctest --output-on-failure
+## Uso
+```bash
+# Compilar programa
+./build/proyecto_compilador ejemplos/factorial_calculation.c
 
-Buenas prácticas
-----------------
-- Mantener las gramáticas y documentación en docs/
-- Dividir las fases del compilador en módulos
-- Crear pruebas unitarias para cada fase
+# Ejecutar
+g++ -o programa codigo.cpp && ./programa
+```
 
-Licencia
---------
-MIT License
+## Tests
+```bash
+cd doctest
+mkdir build && cd build
+cmake .. && cmake --build .
+./proyecto_tests
+```
+
+## Características
+- **Tipos:** `int`, `float`
+- **Keywords:** `if`, `else`, `while`, `print`, `input`
+- **Operadores:** `+`, `-`, `*`, `/`, `%`, `<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`, `!`
+- **Comentarios:** `//` y `/* */`
