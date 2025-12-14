@@ -45,7 +45,7 @@
 #ifndef YY_YY_PARSER_HPP_INCLUDED
 # define YY_YY_PARSER_HPP_INCLUDED
 // "%code requires" blocks.
-#line 6 "gramatica.y"
+#line 5 "gramatica.y"
 
     #include <string>
     #include "ast.hpp"
@@ -185,7 +185,7 @@
 # define YYDEBUG 0
 #endif
 
-#line 24 "gramatica.y"
+#line 34 "gramatica.y"
 namespace proyecto {
 #line 191 "Parser.hpp"
 
@@ -331,22 +331,26 @@ namespace proyecto {
         S_ident_decl = 44,                       // ident_decl
         S_opt_assign_expr = 45,                  // opt_assign_expr
         S_assignment = 46,                       // assignment
-        S_if_stmt = 47,                          // if_stmt
-        S_while_stmt = 48,                       // while_stmt
-        S_print_stmt = 49,                       // print_stmt
-        S_input_stmt = 50,                       // input_stmt
-        S_block = 51,                            // block
-        S_expression = 52,                       // expression
-        S_logical_or = 53,                       // logical_or
-        S_logical_and = 54,                      // logical_and
-        S_equality = 55,                         // equality
-        S_comparison = 56,                       // comparison
-        S_term = 57,                             // term
-        S_factor = 58,                           // factor
-        S_unary = 59,                            // unary
-        S_primary = 60,                          // primary
-        S_array = 61,                            // array
-        S_array_decl = 62                        // array_decl
+        S_if_kw = 47,                            // if_kw
+        S_while_kw = 48,                         // while_kw
+        S_print_kw = 49,                         // print_kw
+        S_input_kw = 50,                         // input_kw
+        S_if_stmt = 51,                          // if_stmt
+        S_while_stmt = 52,                       // while_stmt
+        S_print_stmt = 53,                       // print_stmt
+        S_input_stmt = 54,                       // input_stmt
+        S_block = 55,                            // block
+        S_expression = 56,                       // expression
+        S_logical_or = 57,                       // logical_or
+        S_logical_and = 58,                      // logical_and
+        S_equality = 59,                         // equality
+        S_comparison = 60,                       // comparison
+        S_term = 61,                             // term
+        S_factor = 62,                           // factor
+        S_unary = 63,                            // unary
+        S_primary = 64,                          // primary
+        S_array = 65,                            // array
+        S_array_decl = 66                        // array_decl
       };
     };
 
@@ -404,14 +408,11 @@ namespace proyecto {
         Base::clear ();
       }
 
-#if YYDEBUG || 0
       /// The user-facing name of this symbol.
-      const char *name () const YY_NOEXCEPT
+      std::string name () const YY_NOEXCEPT
       {
         return Parser::symbol_name (this->kind ());
       }
-#endif // #if YYDEBUG || 0
-
 
       /// Backward compatibility (Bison 3.6).
       symbol_kind_type type_get () const YY_NOEXCEPT;
@@ -519,14 +520,27 @@ namespace proyecto {
     /// Report a syntax error.
     void error (const syntax_error& err);
 
-#if YYDEBUG || 0
     /// The user-facing name of the symbol whose (internal) number is
     /// YYSYMBOL.  No bounds checking.
-    static const char *symbol_name (symbol_kind_type yysymbol);
-#endif // #if YYDEBUG || 0
+    static std::string symbol_name (symbol_kind_type yysymbol);
 
 
 
+    class context
+    {
+    public:
+      context (const Parser& yyparser, const symbol_type& yyla);
+      const symbol_type& lookahead () const YY_NOEXCEPT { return yyla_; }
+      symbol_kind_type token () const YY_NOEXCEPT { return yyla_.kind (); }
+      /// Put in YYARG at most YYARGN of the expected tokens, and return the
+      /// number of tokens stored in YYARG.  If YYARG is null, return the
+      /// number of expected tokens (guaranteed to be less than YYNTOKENS).
+      int expected_tokens (symbol_kind_type yyarg[], int yyargn) const;
+
+    private:
+      const Parser& yyparser_;
+      const symbol_type& yyla_;
+    };
 
   private:
 #if YY_CPLUSPLUS < 201103L
@@ -538,8 +552,15 @@ namespace proyecto {
 
 
     /// Stored state numbers (used for stacks).
-    typedef signed char state_type;
+    typedef unsigned char state_type;
 
+    /// The arguments of the error message.
+    int yy_syntax_error_arguments_ (const context& yyctx,
+                                    symbol_kind_type yyarg[], int yyargn) const;
+
+    /// Generate an error message.
+    /// \param yyctx     the context in which the error occurred.
+    virtual std::string yysyntax_error_ (const context& yyctx) const;
     /// Compute post-reduction state.
     /// \param yystate   the current state
     /// \param yysym     the nonterminal to push on the stack
@@ -561,16 +582,17 @@ namespace proyecto {
     /// are valid, yet not members of the token_kind_type enum.
     static symbol_kind_type yytranslate_ (int t) YY_NOEXCEPT;
 
-#if YYDEBUG || 0
+    /// Convert the symbol name \a n to a form suitable for a diagnostic.
+    static std::string yytnamerr_ (const char *yystr);
+
     /// For a symbol, its name in clear.
     static const char* const yytname_[];
-#endif // #if YYDEBUG || 0
 
 
     // Tables.
     // YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
     // STATE-NUM.
-    static const signed char yypact_[];
+    static const short yypact_[];
 
     // YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
     // Performed when YYTABLE does not specify something else to do.  Zero
@@ -578,7 +600,7 @@ namespace proyecto {
     static const signed char yydefact_[];
 
     // YYPGOTO[NTERM-NUM].
-    static const signed char yypgoto_[];
+    static const short yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
     static const signed char yydefgoto_[];
@@ -586,9 +608,9 @@ namespace proyecto {
     // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
     // positive, shift that token.  If negative, reduce the rule whose
     // number is the opposite.  If YYTABLE_NINF, syntax error.
-    static const signed char yytable_[];
+    static const short yytable_[];
 
-    static const signed char yycheck_[];
+    static const short yycheck_[];
 
     // YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
     // state STATE-NUM.
@@ -603,7 +625,7 @@ namespace proyecto {
 
 #if YYDEBUG
     // YYRLINE[YYN] -- Source line where rule number YYN was defined.
-    static const unsigned char yyrline_[];
+    static const short yyrline_[];
     /// Report on the debug stream that the rule \a r is going to be reduced.
     virtual void yy_reduce_print_ (int r) const;
     /// Print the state stack on the debug stream.
@@ -830,9 +852,9 @@ namespace proyecto {
     /// Constants.
     enum
     {
-      yylast_ = 91,     ///< Last index in yytable_.
-      yynnts_ = 26,  ///< Number of nonterminal symbols.
-      yyfinal_ = 44 ///< Termination state number.
+      yylast_ = 153,     ///< Last index in yytable_.
+      yynnts_ = 30,  ///< Number of nonterminal symbols.
+      yyfinal_ = 49 ///< Termination state number.
     };
 
 
@@ -843,9 +865,9 @@ namespace proyecto {
   };
 
 
-#line 24 "gramatica.y"
+#line 34 "gramatica.y"
 } // proyecto
-#line 849 "Parser.hpp"
+#line 871 "Parser.hpp"
 
 
 

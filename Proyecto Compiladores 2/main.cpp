@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
     }
     catch (const proyecto::Parser::syntax_error& e)
     {
-        std::cerr << "Error de sintaxis: " << e.what() << std::endl;
+        std::cerr << "Error de sintaxis: " << e.what()<< std::endl;
         return 1;
     }
     catch (const std::runtime_error& e)

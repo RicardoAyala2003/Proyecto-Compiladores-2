@@ -1,4 +1,4 @@
-// error_var_no_declarada_expresion.txt
-int x = 10;
-int y = x + 1;
-print(y);
+int x = 5;
+int y = 10;
+
+if (x>y)  print();

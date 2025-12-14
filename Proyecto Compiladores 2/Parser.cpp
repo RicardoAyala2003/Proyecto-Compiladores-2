@@ -37,16 +37,27 @@
 
 
 // First part of user prologue.
-#line 12 "gramatica.y"
+#line 11 "gramatica.y"
 
     #include "Lexer.hpp"
     #define yylex(v) lexer.getNextToken(v)
-    
+
+    std::string lastKeyword = "";
+
     void proyecto::Parser::error(const std::string& msg) {
-        throw std::runtime_error("Error Sintáctico: " + msg + "\n");
+        std::string buffer = lexer.getBuffer();
+        int line = lexer.getLine();
+        int col = lexer.getColumn();
+
+        std::string errorMsg = "Error Sintáctico [Línea " + std::to_string(line) +
+                              ", Columna " + std::to_string(col) + "]";
+        errorMsg += ": " + msg;
+
+        lastKeyword = "";
+        throw std::runtime_error(errorMsg);
     }
 
-#line 50 "Parser.cpp"
+#line 61 "Parser.cpp"
 
 
 #include "Parser.hpp"
@@ -123,9 +134,9 @@
 #define YYERROR         goto yyerrorlab
 #define YYRECOVERING()  (!!yyerrstatus_)
 
-#line 24 "gramatica.y"
+#line 34 "gramatica.y"
 namespace proyecto {
-#line 129 "Parser.cpp"
+#line 140 "Parser.cpp"
 
   /// Build a parser object.
   Parser::Parser (Lexer &lexer_yyarg, AstNode*& astN_yyarg)
@@ -581,406 +592,313 @@ namespace proyecto {
           switch (yyn)
             {
   case 2: // program: opt_statement_list
-#line 42 "gramatica.y"
-                            { astN = new Program(yystack_[0].value); }
-#line 587 "Parser.cpp"
+#line 53 "gramatica.y"
+                         { astN = new Program(yystack_[0].value); }
+#line 598 "Parser.cpp"
     break;
 
   case 3: // opt_statement_list: statement_list
-#line 45 "gramatica.y"
-                                   { yylhs.value= yystack_[0].value; }
-#line 593 "Parser.cpp"
+#line 57 "gramatica.y"
+                     { yylhs.value = yystack_[0].value; }
+#line 604 "Parser.cpp"
     break;
 
   case 4: // opt_statement_list: %empty
-#line 46 "gramatica.y"
-                           { yylhs.value= new StatementList({}); }
-#line 599 "Parser.cpp"
+#line 58 "gramatica.y"
+             { yylhs.value = new StatementList({}); }
+#line 610 "Parser.cpp"
     break;
 
   case 5: // statement_list: statement_list statement
-#line 49 "gramatica.y"
-                                         { 
-                    yylhs.value= yystack_[1].value; 
-                    reinterpret_cast<StatementList*>(yylhs.value)->stmts.push_back(yystack_[0].value);
-                }
-#line 608 "Parser.cpp"
+#line 62 "gramatica.y"
+                               {
+        yylhs.value = yystack_[1].value;
+        reinterpret_cast<StatementList*>(yylhs.value)->stmts.push_back(yystack_[0].value);
+      }
+#line 619 "Parser.cpp"
     break;
 
   case 6: // statement_list: statement
-#line 53 "gramatica.y"
-                          { 
-                    yylhs.value= new StatementList({});
-                    reinterpret_cast<StatementList*>(yylhs.value)->stmts.push_back(yystack_[0].value);
-                }
-#line 617 "Parser.cpp"
+#line 66 "gramatica.y"
+                {
+        yylhs.value = new StatementList({});
+        reinterpret_cast<StatementList*>(yylhs.value)->stmts.push_back(yystack_[0].value);
+      }
+#line 628 "Parser.cpp"
     break;
 
-  case 7: // statement: var_decl
-#line 59 "gramatica.y"
-                    { yylhs.value= yystack_[0].value; }
-#line 623 "Parser.cpp"
+  case 15: // var_decl: KW_INT ident_decl opt_ident_list SEMICOLON
+#line 84 "gramatica.y"
+                                                 {
+        yylhs.value = new VarDeclStmt(yystack_[2].value, yystack_[1].value);
+      }
+#line 636 "Parser.cpp"
     break;
 
-  case 8: // statement: assignment
-#line 60 "gramatica.y"
-                      { yylhs.value= yystack_[0].value; }
-#line 629 "Parser.cpp"
+  case 17: // opt_ident_list: opt_ident_list COMMA ident_decl
+#line 91 "gramatica.y"
+                                      {
+        yylhs.value = yystack_[2].value;
+        reinterpret_cast<IdentList*>(yylhs.value)->idents.push_back(yystack_[0].value);
+      }
+#line 645 "Parser.cpp"
     break;
 
-  case 9: // statement: if_stmt
-#line 61 "gramatica.y"
-                   { yylhs.value= yystack_[0].value; }
-#line 635 "Parser.cpp"
+  case 18: // opt_ident_list: %empty
+#line 95 "gramatica.y"
+             { yylhs.value = new IdentList({}); }
+#line 651 "Parser.cpp"
     break;
 
-  case 10: // statement: while_stmt
-#line 62 "gramatica.y"
-                      { yylhs.value= yystack_[0].value; }
-#line 641 "Parser.cpp"
-    break;
-
-  case 11: // statement: print_stmt
-#line 63 "gramatica.y"
-                      { yylhs.value= yystack_[0].value; }
-#line 647 "Parser.cpp"
-    break;
-
-  case 12: // statement: block
-#line 64 "gramatica.y"
-                 { yylhs.value= yystack_[0].value; }
-#line 653 "Parser.cpp"
-    break;
-
-  case 13: // statement: array_decl
-#line 65 "gramatica.y"
-                      { yylhs.value= yystack_[0].value; }
+  case 19: // ident_decl: IDENTIFIER opt_assign_expr
+#line 99 "gramatica.y"
+                                 {
+        yylhs.value = new IdentDecl(yystack_[1].value, yystack_[0].value);
+      }
 #line 659 "Parser.cpp"
     break;
 
-  case 14: // var_decl: KW_INT ident_decl opt_ident_list SEMICOLON
-#line 68 "gramatica.y"
-                                                     {
-            yylhs.value= new VarDeclStmt(yystack_[2].value, yystack_[1].value);
-        }
-#line 667 "Parser.cpp"
+  case 20: // opt_assign_expr: ASSIGN expression
+#line 105 "gramatica.y"
+                        { yylhs.value = yystack_[0].value; }
+#line 665 "Parser.cpp"
     break;
 
-  case 15: // opt_ident_list: opt_ident_list COMMA ident_decl
-#line 73 "gramatica.y"
-                                                {
-                    yylhs.value= yystack_[2].value;
-                    reinterpret_cast<IdentList*>(yylhs.value)->idents.push_back(yystack_[0].value);
-                }
-#line 676 "Parser.cpp"
+  case 21: // opt_assign_expr: %empty
+#line 106 "gramatica.y"
+             { yylhs.value = nullptr; }
+#line 671 "Parser.cpp"
     break;
 
-  case 16: // opt_ident_list: %empty
-#line 77 "gramatica.y"
-                       {
-                    yylhs.value= new IdentList({});
-                }
-#line 684 "Parser.cpp"
+  case 22: // assignment: IDENTIFIER ASSIGN expression SEMICOLON
+#line 110 "gramatica.y"
+                                             {
+        yylhs.value = new AssignmentStmt(yystack_[3].value, yystack_[1].value);
+      }
+#line 679 "Parser.cpp"
     break;
 
-  case 17: // ident_decl: IDENTIFIER opt_assign_expr
-#line 82 "gramatica.y"
-                                       {
-                yylhs.value= new IdentDecl(yystack_[1].value, yystack_[0].value);
-            }
-#line 692 "Parser.cpp"
+  case 24: // if_kw: KW_IF
+#line 117 "gramatica.y"
+            { lastKeyword = "if"; }
+#line 685 "Parser.cpp"
     break;
 
-  case 18: // opt_assign_expr: ASSIGN expression
-#line 87 "gramatica.y"
-                                   { yylhs.value= yystack_[0].value; }
-#line 698 "Parser.cpp"
+  case 25: // while_kw: KW_WHILE
+#line 121 "gramatica.y"
+               { lastKeyword = "while"; }
+#line 691 "Parser.cpp"
     break;
 
-  case 19: // opt_assign_expr: %empty
-#line 88 "gramatica.y"
-                        { yylhs.value= nullptr; }
-#line 704 "Parser.cpp"
+  case 26: // print_kw: KW_PRINT
+#line 125 "gramatica.y"
+               { lastKeyword = "print"; }
+#line 697 "Parser.cpp"
     break;
 
-  case 20: // assignment: IDENTIFIER ASSIGN expression SEMICOLON
-#line 91 "gramatica.y"
-                                                   {
-                yylhs.value= new AssignmentStmt(yystack_[3].value, yystack_[1].value);
-            }
+  case 27: // input_kw: KW_INPUT
+#line 129 "gramatica.y"
+               { lastKeyword = "input"; }
+#line 703 "Parser.cpp"
+    break;
+
+  case 28: // if_stmt: if_kw OP_PAR expression CLOSE_PAR statement
+#line 133 "gramatica.y"
+                                                             {
+        lastKeyword = "";
+        yylhs.value = new IfStmt(yystack_[2].value, yystack_[0].value, nullptr);
+      }
 #line 712 "Parser.cpp"
     break;
 
-  case 21: // if_stmt: KW_IF OP_PAR expression CLOSE_PAR statement
-#line 96 "gramatica.y"
-                                                                {
-            yylhs.value= new IfStmt(yystack_[2].value, yystack_[0].value, nullptr);
-         }
-#line 720 "Parser.cpp"
+  case 29: // if_stmt: if_kw OP_PAR expression CLOSE_PAR statement KW_ELSE statement
+#line 137 "gramatica.y"
+                                                                    {
+        lastKeyword = "";
+        yylhs.value = new IfStmt(yystack_[4].value, yystack_[2].value, yystack_[0].value);
+      }
+#line 721 "Parser.cpp"
     break;
 
-  case 22: // if_stmt: KW_IF OP_PAR expression CLOSE_PAR statement KW_ELSE statement
-#line 99 "gramatica.y"
-                                                                       {
-            yylhs.value= new IfStmt(yystack_[4].value, yystack_[2].value, yystack_[0].value);
-         }
-#line 728 "Parser.cpp"
+  case 34: // while_stmt: while_kw OP_PAR expression CLOSE_PAR statement
+#line 148 "gramatica.y"
+                                                     {
+        lastKeyword = "";
+        yylhs.value = new WhileStmt(yystack_[2].value, yystack_[0].value);
+      }
+#line 730 "Parser.cpp"
     break;
 
-  case 23: // while_stmt: KW_WHILE OP_PAR expression CLOSE_PAR statement
-#line 104 "gramatica.y"
-                                                           {
-                yylhs.value= new WhileStmt(yystack_[2].value, yystack_[0].value);
-            }
-#line 736 "Parser.cpp"
+  case 37: // print_stmt: print_kw OP_PAR expression CLOSE_PAR SEMICOLON
+#line 157 "gramatica.y"
+                                                     {
+        lastKeyword = "";
+        yylhs.value = new PrintStmt(yystack_[2].value);
+      }
+#line 739 "Parser.cpp"
     break;
 
-  case 24: // print_stmt: KW_PRINT OP_PAR expression CLOSE_PAR SEMICOLON
-#line 109 "gramatica.y"
-                                                           {
-                yylhs.value= new PrintStmt(yystack_[2].value);
-            }
-#line 744 "Parser.cpp"
+  case 39: // input_stmt: input_kw OP_PAR CLOSE_PAR
+#line 165 "gramatica.y"
+                                {
+        lastKeyword = "";
+        yylhs.value = new InputStmt();
+      }
+#line 748 "Parser.cpp"
     break;
 
-  case 25: // input_stmt: KW_INPUT OP_PAR CLOSE_PAR
-#line 114 "gramatica.y"
-                                      {
-                yylhs.value= new InputStmt();
-            }
-#line 752 "Parser.cpp"
+  case 42: // block: OP_BRACE opt_statement_list CLOSE_BRACE
+#line 174 "gramatica.y"
+                                              {
+        yylhs.value = new BlockStmt(yystack_[1].value);
+      }
+#line 756 "Parser.cpp"
     break;
 
-  case 26: // block: OP_BRACE opt_statement_list CLOSE_BRACE
-#line 119 "gramatica.y"
-                                               {
-            yylhs.value= new BlockStmt(yystack_[1].value);
-       }
-#line 760 "Parser.cpp"
+  case 46: // logical_or: logical_or OR logical_and
+#line 185 "gramatica.y"
+                                {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::OR, yystack_[0].value);
+      }
+#line 764 "Parser.cpp"
     break;
 
-  case 27: // expression: logical_or
-#line 124 "gramatica.y"
-                       { yylhs.value= yystack_[0].value; }
-#line 766 "Parser.cpp"
+  case 48: // logical_and: logical_and AND equality
+#line 192 "gramatica.y"
+                               {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::AND, yystack_[0].value);
+      }
+#line 772 "Parser.cpp"
     break;
 
-  case 28: // logical_or: logical_or OR logical_and
-#line 127 "gramatica.y"
-                                      {
-                yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::OR, yystack_[0].value);
-            }
-#line 774 "Parser.cpp"
-    break;
-
-  case 29: // logical_or: logical_and
-#line 130 "gramatica.y"
-                        { yylhs.value= yystack_[0].value; }
+  case 50: // equality: equality EQUAL comparison
+#line 199 "gramatica.y"
+                                {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::EQUAL, yystack_[0].value);
+      }
 #line 780 "Parser.cpp"
     break;
 
-  case 30: // logical_and: logical_and AND equality
-#line 133 "gramatica.y"
-                                      {
-                yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::AND, yystack_[0].value);
-             }
+  case 51: // equality: equality DISTINCT comparison
+#line 202 "gramatica.y"
+                                   {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::DISTINCT, yystack_[0].value);
+      }
 #line 788 "Parser.cpp"
     break;
 
-  case 31: // logical_and: equality
-#line 136 "gramatica.y"
-                      { yylhs.value= yystack_[0].value; }
-#line 794 "Parser.cpp"
+  case 53: // comparison: comparison LESS_THAN term
+#line 209 "gramatica.y"
+                                {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::LESS_THAN, yystack_[0].value);
+      }
+#line 796 "Parser.cpp"
     break;
 
-  case 32: // equality: equality EQUAL comparison
-#line 139 "gramatica.y"
+  case 54: // comparison: comparison GREATER_THAN term
+#line 212 "gramatica.y"
+                                   {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::GREATER_THAN, yystack_[0].value);
+      }
+#line 804 "Parser.cpp"
+    break;
+
+  case 55: // comparison: comparison LESS_EQUAL term
+#line 215 "gramatica.y"
+                                 {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::LESS_EQUAL, yystack_[0].value);
+      }
+#line 812 "Parser.cpp"
+    break;
+
+  case 56: // comparison: comparison GREATER_EQUAL term
+#line 218 "gramatica.y"
                                     {
-            yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::EQUAL, yystack_[0].value);
-          }
-#line 802 "Parser.cpp"
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::GREATER_EQUAL, yystack_[0].value);
+      }
+#line 820 "Parser.cpp"
     break;
 
-  case 33: // equality: equality DISTINCT comparison
-#line 142 "gramatica.y"
-                                       {
-            yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::DISTINCT, yystack_[0].value);
-          }
-#line 810 "Parser.cpp"
-    break;
-
-  case 34: // equality: comparison
-#line 145 "gramatica.y"
-                     { yylhs.value= yystack_[0].value; }
-#line 816 "Parser.cpp"
-    break;
-
-  case 35: // comparison: comparison LESS_THAN term
-#line 148 "gramatica.y"
-                                      {
-                yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::LESS_THAN, yystack_[0].value);
-            }
-#line 824 "Parser.cpp"
-    break;
-
-  case 36: // comparison: comparison GREATER_THAN term
-#line 151 "gramatica.y"
-                                         {
-                yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::GREATER_THAN, yystack_[0].value);
-            }
-#line 832 "Parser.cpp"
-    break;
-
-  case 37: // comparison: comparison LESS_EQUAL term
-#line 154 "gramatica.y"
-                                       {
-                yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::LESS_EQUAL, yystack_[0].value);
-            }
-#line 840 "Parser.cpp"
-    break;
-
-  case 38: // comparison: comparison GREATER_EQUAL term
-#line 157 "gramatica.y"
-                                          {
-                yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::GREATER_EQUAL, yystack_[0].value);
-            }
-#line 848 "Parser.cpp"
-    break;
-
-  case 39: // comparison: term
-#line 160 "gramatica.y"
-                 { yylhs.value= yystack_[0].value; }
-#line 854 "Parser.cpp"
-    break;
-
-  case 40: // term: term PLUS factor
-#line 163 "gramatica.y"
+  case 58: // term: term PLUS factor
+#line 225 "gramatica.y"
                        {
-        yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::PLUS, yystack_[0].value);
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::PLUS, yystack_[0].value);
       }
-#line 862 "Parser.cpp"
+#line 828 "Parser.cpp"
     break;
 
-  case 41: // term: term MINUS factor
-#line 166 "gramatica.y"
+  case 59: // term: term MINUS factor
+#line 228 "gramatica.y"
                         {
-        yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::MINUS, yystack_[0].value);
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::MINUS, yystack_[0].value);
       }
-#line 870 "Parser.cpp"
+#line 836 "Parser.cpp"
     break;
 
-  case 42: // term: factor
-#line 169 "gramatica.y"
-             { yylhs.value= yystack_[0].value; }
+  case 61: // factor: factor MULT unary
+#line 235 "gramatica.y"
+                        {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::MULT, yystack_[0].value);
+      }
+#line 844 "Parser.cpp"
+    break;
+
+  case 62: // factor: factor DIV unary
+#line 238 "gramatica.y"
+                       {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::DIV, yystack_[0].value);
+      }
+#line 852 "Parser.cpp"
+    break;
+
+  case 63: // factor: factor MOD unary
+#line 241 "gramatica.y"
+                       {
+        yylhs.value = new BinaryExpr(yystack_[2].value, BinaryOperator::MOD, yystack_[0].value);
+      }
+#line 860 "Parser.cpp"
+    break;
+
+  case 65: // unary: NOT unary
+#line 248 "gramatica.y"
+                {
+        yylhs.value = new UnaryExpr(UnaryOperator::NOT, yystack_[0].value);
+      }
+#line 868 "Parser.cpp"
+    break;
+
+  case 66: // unary: MINUS unary
+#line 251 "gramatica.y"
+                  {
+        yylhs.value = new UnaryExpr(UnaryOperator::NEGATE, yystack_[0].value);
+      }
 #line 876 "Parser.cpp"
     break;
 
-  case 43: // factor: factor MULT unary
-#line 172 "gramatica.y"
-                          {
-            yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::MULT, yystack_[0].value);
-        }
-#line 884 "Parser.cpp"
+  case 72: // primary: OP_PAR expression CLOSE_PAR
+#line 262 "gramatica.y"
+                                  { yylhs.value = new ParExpr(yystack_[1].value); }
+#line 882 "Parser.cpp"
     break;
 
-  case 44: // factor: factor DIV unary
-#line 175 "gramatica.y"
-                         {
-            yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::DIV, yystack_[0].value);
-        }
-#line 892 "Parser.cpp"
+  case 73: // array: OP_BRACKET expression CLOSE_BRACKET
+#line 266 "gramatica.y"
+                                          {
+        yylhs.value = new ArrayAccess(yystack_[1].value);
+      }
+#line 890 "Parser.cpp"
     break;
 
-  case 45: // factor: factor MOD unary
-#line 178 "gramatica.y"
-                         {
-            yylhs.value= new BinaryExpr(yystack_[2].value, BinaryOperator::MOD, yystack_[0].value);
-        }
-#line 900 "Parser.cpp"
-    break;
-
-  case 46: // factor: unary
-#line 181 "gramatica.y"
-              { yylhs.value= yystack_[0].value; }
-#line 906 "Parser.cpp"
-    break;
-
-  case 47: // unary: NOT unary
-#line 184 "gramatica.y"
-                 {
-            yylhs.value= new UnaryExpr(UnaryOperator::NOT, yystack_[0].value);
-       }
-#line 914 "Parser.cpp"
-    break;
-
-  case 48: // unary: MINUS unary
-#line 187 "gramatica.y"
-                   {
-            yylhs.value= new UnaryExpr(UnaryOperator::NEGATE, yystack_[0].value);
-       }
-#line 922 "Parser.cpp"
-    break;
-
-  case 49: // unary: primary
-#line 190 "gramatica.y"
-               { yylhs.value= yystack_[0].value; }
-#line 928 "Parser.cpp"
-    break;
-
-  case 50: // primary: INTEGER
-#line 193 "gramatica.y"
-                 { yylhs.value= yystack_[0].value; }
-#line 934 "Parser.cpp"
-    break;
-
-  case 51: // primary: FLOAT
-#line 194 "gramatica.y"
-               { yylhs.value= yystack_[0].value; }
-#line 940 "Parser.cpp"
-    break;
-
-  case 52: // primary: IDENTIFIER
-#line 195 "gramatica.y"
-                    { yylhs.value= yystack_[0].value; }
-#line 946 "Parser.cpp"
-    break;
-
-  case 53: // primary: input_stmt
-#line 196 "gramatica.y"
-                    { yylhs.value= yystack_[0].value; }
-#line 952 "Parser.cpp"
-    break;
-
-  case 54: // primary: OP_PAR expression CLOSE_PAR
-#line 197 "gramatica.y"
-                                     { yylhs.value= new ParExpr(yystack_[1].value);  }
-#line 958 "Parser.cpp"
-    break;
-
-  case 55: // array: OP_BRACKET expression CLOSE_BRACKET
-#line 200 "gramatica.y"
-                                           {
-            yylhs.value= new ArrayAccess(yystack_[1].value);
-       }
-#line 966 "Parser.cpp"
-    break;
-
-  case 56: // array_decl: KW_INT IDENTIFIER array SEMICOLON
-#line 205 "gramatica.y"
-                                              {
-                yylhs.value= new ArrayDeclStmt(yystack_[2].value, yystack_[1].value);
-            }
-#line 974 "Parser.cpp"
-    break;
-
-  case 57: // array_decl: array
-#line 208 "gramatica.y"
-                  { yylhs.value= yystack_[0].value; }
-#line 980 "Parser.cpp"
+  case 74: // array_decl: KW_INT IDENTIFIER array SEMICOLON
+#line 272 "gramatica.y"
+                                        {
+        yylhs.value = new ArrayDeclStmt(yystack_[2].value, yystack_[1].value);
+      }
+#line 898 "Parser.cpp"
     break;
 
 
-#line 984 "Parser.cpp"
+#line 902 "Parser.cpp"
 
             default:
               break;
@@ -1012,7 +930,8 @@ namespace proyecto {
     if (!yyerrstatus_)
       {
         ++yynerrs_;
-        std::string msg = YY_("syntax error");
+        context yyctx (*this, yyla);
+        std::string msg = yysyntax_error_ (yyctx);
         error (YY_MOVE (msg));
       }
 
@@ -1153,144 +1072,330 @@ namespace proyecto {
     error (yyexc.what ());
   }
 
-#if YYDEBUG || 0
-  const char *
+  /* Return YYSTR after stripping away unnecessary quotes and
+     backslashes, so that it's suitable for yyerror.  The heuristic is
+     that double-quoting is unnecessary unless the string contains an
+     apostrophe, a comma, or backslash (other than backslash-backslash).
+     YYSTR is taken from yytname.  */
+  std::string
+  Parser::yytnamerr_ (const char *yystr)
+  {
+    if (*yystr == '"')
+      {
+        std::string yyr;
+        char const *yyp = yystr;
+
+        for (;;)
+          switch (*++yyp)
+            {
+            case '\'':
+            case ',':
+              goto do_not_strip_quotes;
+
+            case '\\':
+              if (*++yyp != '\\')
+                goto do_not_strip_quotes;
+              else
+                goto append;
+
+            append:
+            default:
+              yyr += *yyp;
+              break;
+
+            case '"':
+              return yyr;
+            }
+      do_not_strip_quotes: ;
+      }
+
+    return yystr;
+  }
+
+  std::string
   Parser::symbol_name (symbol_kind_type yysymbol)
   {
-    return yytname_[yysymbol];
+    return yytnamerr_ (yytname_[yysymbol]);
   }
-#endif // #if YYDEBUG || 0
+
+
+
+  // Parser::context.
+  Parser::context::context (const Parser& yyparser, const symbol_type& yyla)
+    : yyparser_ (yyparser)
+    , yyla_ (yyla)
+  {}
+
+  int
+  Parser::context::expected_tokens (symbol_kind_type yyarg[], int yyargn) const
+  {
+    // Actual number of expected tokens
+    int yycount = 0;
+
+    const int yyn = yypact_[+yyparser_.yystack_[0].state];
+    if (!yy_pact_value_is_default_ (yyn))
+      {
+        /* Start YYX at -YYN if negative to avoid negative indexes in
+           YYCHECK.  In other words, skip the first -YYN actions for
+           this state because they are default actions.  */
+        const int yyxbegin = yyn < 0 ? -yyn : 0;
+        // Stay within bounds of both yycheck and yytname.
+        const int yychecklim = yylast_ - yyn + 1;
+        const int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
+        for (int yyx = yyxbegin; yyx < yyxend; ++yyx)
+          if (yycheck_[yyx + yyn] == yyx && yyx != symbol_kind::S_YYerror
+              && !yy_table_value_is_error_ (yytable_[yyx + yyn]))
+            {
+              if (!yyarg)
+                ++yycount;
+              else if (yycount == yyargn)
+                return 0;
+              else
+                yyarg[yycount++] = YY_CAST (symbol_kind_type, yyx);
+            }
+      }
+
+    if (yyarg && yycount == 0 && 0 < yyargn)
+      yyarg[0] = symbol_kind::S_YYEMPTY;
+    return yycount;
+  }
 
 
 
 
 
 
+  int
+  Parser::yy_syntax_error_arguments_ (const context& yyctx,
+                                                 symbol_kind_type yyarg[], int yyargn) const
+  {
+    /* There are many possibilities here to consider:
+       - If this state is a consistent state with a default action, then
+         the only way this function was invoked is if the default action
+         is an error action.  In that case, don't check for expected
+         tokens because there are none.
+       - The only way there can be no lookahead present (in yyla) is
+         if this state is a consistent state with a default action.
+         Thus, detecting the absence of a lookahead is sufficient to
+         determine that there is no unexpected or expected token to
+         report.  In that case, just report a simple "syntax error".
+       - Don't assume there isn't a lookahead just because this state is
+         a consistent state with a default action.  There might have
+         been a previous inconsistent state, consistent state with a
+         non-default action, or user semantic action that manipulated
+         yyla.  (However, yyla is currently not documented for users.)
+       - Of course, the expected token list depends on states to have
+         correct lookahead information, and it depends on the parser not
+         to perform extra reductions after fetching a lookahead from the
+         scanner and before detecting a syntax error.  Thus, state merging
+         (from LALR or IELR) and default reductions corrupt the expected
+         token list.  However, the list is correct for canonical LR with
+         one exception: it will still contain any token that will not be
+         accepted due to an error action in a later state.
+    */
+
+    if (!yyctx.lookahead ().empty ())
+      {
+        if (yyarg)
+          yyarg[0] = yyctx.token ();
+        int yyn = yyctx.expected_tokens (yyarg ? yyarg + 1 : yyarg, yyargn - 1);
+        return yyn + 1;
+      }
+    return 0;
+  }
+
+  // Generate an error message.
+  std::string
+  Parser::yysyntax_error_ (const context& yyctx) const
+  {
+    // Its maximum.
+    enum { YYARGS_MAX = 5 };
+    // Arguments of yyformat.
+    symbol_kind_type yyarg[YYARGS_MAX];
+    int yycount = yy_syntax_error_arguments_ (yyctx, yyarg, YYARGS_MAX);
+
+    char const* yyformat = YY_NULLPTR;
+    switch (yycount)
+      {
+#define YYCASE_(N, S)                         \
+        case N:                               \
+          yyformat = S;                       \
+        break
+      default: // Avoid compiler warnings.
+        YYCASE_ (0, YY_("syntax error"));
+        YYCASE_ (1, YY_("syntax error, unexpected %s"));
+        YYCASE_ (2, YY_("syntax error, unexpected %s, expecting %s"));
+        YYCASE_ (3, YY_("syntax error, unexpected %s, expecting %s or %s"));
+        YYCASE_ (4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
+        YYCASE_ (5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
+#undef YYCASE_
+      }
+
+    std::string yyres;
+    // Argument number.
+    std::ptrdiff_t yyi = 0;
+    for (char const* yyp = yyformat; *yyp; ++yyp)
+      if (yyp[0] == '%' && yyp[1] == 's' && yyi < yycount)
+        {
+          yyres += symbol_name (yyarg[yyi++]);
+          ++yyp;
+        }
+      else
+        yyres += *yyp;
+    return yyres;
+  }
 
 
+  const signed char Parser::yypact_ninf_ = -36;
 
-  const signed char Parser::yypact_ninf_ = -32;
+  const signed char Parser::yytable_ninf_ = -46;
 
-  const signed char Parser::yytable_ninf_ = -1;
-
-  const signed char
+  const short
   Parser::yypact_[] =
   {
-      18,     4,    20,    11,    23,    37,    18,     0,    33,   -32,
-      18,   -32,   -32,   -32,   -32,   -32,   -32,   -32,   -32,   -32,
-       0,    -2,   -32,     0,     0,     0,    38,   -32,   -32,   -32,
-      40,     0,     0,     0,   -32,    39,    24,    26,   -12,     3,
-      25,   -17,   -32,   -32,   -32,   -32,    47,     0,   -32,    48,
-      35,    46,    49,    50,   -32,    51,    54,   -32,   -32,   -32,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,   -32,   -32,   -32,   -32,    60,    18,    18,
-      58,   -32,   -32,    26,   -12,     3,     3,    25,    25,    25,
-      25,   -17,   -17,   -32,   -32,   -32,    52,   -32,    64,   -32,
-     -32,    18,   -32
+      87,    50,    14,   -36,   -36,   -36,   -36,    62,     5,    54,
+     -36,    87,   -36,   -36,   -36,     4,    20,    51,    55,   -36,
+     -36,   -36,   -36,   -36,   -36,   -36,    42,    -1,    73,   -36,
+       6,    57,   -36,   -36,   -36,   -36,     5,    33,    33,   -36,
+      71,    70,    63,    -8,    32,    56,    59,   -36,   -36,   -36,
+     -36,     5,     5,     5,     5,     5,     5,    89,    12,   112,
+     116,   -36,   117,   118,     5,   -36,   119,    75,   -36,   -36,
+     123,   -36,   -36,   -36,    33,    33,    33,    33,    33,    33,
+      33,    33,    33,    33,    33,    33,    33,   124,    24,   125,
+      25,   126,   127,   -36,   128,   -36,   -36,   -36,   -36,   -36,
+     -36,   -36,   130,   -36,    63,    -8,    32,    32,    56,    56,
+      56,    56,    59,    59,   -36,   -36,   -36,    87,    87,    87,
+      87,    87,    87,   121,   122,   -36,   133,   -36,   138,   139,
+     140,   -36,   -36,   -36,   -36,   -36,    87,    87,    87,   -36,
+     -36,   -36
   };
 
   const signed char
   Parser::yydefact_[] =
   {
-       4,     0,     0,     0,     0,     0,     4,     0,     0,     2,
-       3,     6,     7,     8,     9,    10,    11,    12,    57,    13,
-       0,    19,    16,     0,     0,     0,     0,    52,    50,    51,
-       0,     0,     0,     0,    53,     0,    27,    29,    31,    34,
-      39,    42,    46,    49,     1,     5,     0,     0,    17,     0,
-       0,     0,     0,     0,    26,     0,     0,    48,    47,    55,
+       4,     0,     0,    24,    25,    26,    27,     0,     0,     0,
+       2,     3,     6,     7,     8,     0,     0,     0,     0,     9,
+      10,    11,    12,    13,    77,    14,     0,     0,     0,    18,
+       0,     0,    45,    70,    68,    69,     0,     0,     0,    71,
+       0,    44,    47,    49,    52,    57,    60,    64,    67,     1,
+       5,     0,     0,     0,     0,     0,     0,     0,     0,    23,
+       0,    16,     0,     0,     0,    19,     0,     0,    43,    42,
+       0,    66,    65,    73,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,    20,    18,    56,    14,     0,     0,     0,
-       0,    25,    54,    28,    30,    32,    33,    35,    36,    37,
-      38,    40,    41,    43,    44,    45,    19,    15,    21,    23,
-      24,     0,    22
+       0,     0,     0,    41,     0,    39,    22,    76,    75,    20,
+      74,    15,     0,    72,    46,    48,    50,    51,    53,    54,
+      55,    56,    58,    59,    61,    62,    63,     0,     0,     0,
+       0,     0,     0,     0,     0,    40,    21,    17,    32,    33,
+      28,    36,    35,    34,    38,    37,     0,     0,     0,    31,
+      30,    29
   };
 
-  const signed char
+  const short
   Parser::yypgoto_[] =
   {
-     -32,   -32,    67,   -32,   -10,   -32,   -32,    -3,   -32,   -32,
-     -32,   -32,   -32,   -32,   -32,   -11,   -32,    15,    16,    -9,
-     -22,   -18,   -31,   -32,    55,   -32
+     -36,   -36,   142,   -36,   -10,   -36,   -36,    48,   -36,   -36,
+     -36,   -36,   -36,   -36,   -36,   -36,   -36,     0,   -36,   -22,
+     -36,    77,    78,    37,    21,    41,   -35,   -36,    88,   -36
   };
 
   const signed char
   Parser::yydefgoto_[] =
   {
-       0,     8,     9,    10,    11,    12,    50,    22,    48,    13,
-      14,    15,    16,    34,    17,    35,    36,    37,    38,    39,
-      40,    41,    42,    43,    18,    19
+       0,     9,    10,    11,    12,    13,    67,    29,    65,    14,
+      15,    16,    17,    18,    19,    20,    21,    39,    23,    40,
+      41,    42,    43,    44,    45,    46,    47,    48,    24,    25
   };
 
-  const signed char
+  const short
   Parser::yytable_[] =
   {
-      45,    57,    58,    27,    28,    29,    70,    71,    72,    46,
-      47,    30,    51,    52,    53,    31,    20,     7,    62,    63,
-      56,     1,    32,    21,     2,     3,    23,     4,     5,    64,
-      65,    66,    67,    44,    33,     6,    74,     7,    24,    93,
-      94,    95,    87,    88,    89,    90,    68,    69,    76,    77,
-      91,    92,    25,    85,    86,    55,    54,    60,    61,    59,
-      73,    75,    78,    96,    47,    79,    80,    81,    98,    99,
-      82,   100,   101,    26,    97,    83,    49,    84,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,   102
+      22,    50,    71,    72,    60,    51,    32,    22,    33,    34,
+      35,    22,    61,    94,    70,    27,     6,    28,     8,    52,
+      36,    53,    76,    77,    68,   118,   121,    37,    95,    87,
+      88,    89,    90,    91,    92,    54,    33,    34,    35,    38,
+     119,   122,    99,    59,     6,    33,    34,    35,    36,   114,
+     115,   116,    55,     6,    49,    37,    57,    36,    78,    79,
+      80,    81,    26,    30,    37,     1,    56,    38,     2,     3,
+      58,     4,     5,     6,    63,    69,    38,    82,    83,     7,
+      -4,     8,    84,    85,    86,    64,   -21,   -21,   101,   102,
+       1,    73,     8,     2,     3,    75,     4,     5,     6,   108,
+     109,   110,   111,    74,     7,    93,     8,   128,   129,   130,
+     131,   132,   133,   106,   107,    62,    66,    22,    22,    22,
+      22,    22,    22,   112,   113,   -45,   139,   140,   141,    96,
+      97,    98,   100,   126,   134,   135,    22,    22,    22,   103,
+     117,   120,   123,   124,   125,    64,   136,   137,   138,    31,
+     127,   104,     0,   105
   };
 
-  const signed char
+  const short
   Parser::yycheck_[] =
   {
-      10,    32,    33,     3,     4,     5,    23,    24,    25,    20,
-      12,    11,    23,    24,    25,    15,    12,    19,    30,    31,
-      31,     3,    22,     3,     6,     7,    15,     9,    10,    26,
-      27,    28,    29,     0,    34,    17,    47,    19,    15,    70,
-      71,    72,    64,    65,    66,    67,    21,    22,    13,    14,
-      68,    69,    15,    62,    63,    15,    18,    33,    32,    20,
-      13,    13,    16,     3,    12,    16,    16,    16,    78,    79,
-      16,    13,     8,     6,    77,    60,    21,    61,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,   101
+       0,    11,    37,    38,    26,     1,     1,     7,     3,     4,
+       5,    11,    13,     1,    36,     1,    11,     3,    19,    15,
+      15,     1,    30,    31,    18,     1,     1,    22,    16,    51,
+      52,    53,    54,    55,    56,    15,     3,     4,     5,    34,
+      16,    16,    64,     1,    11,     3,     4,     5,    15,    84,
+      85,    86,     1,    11,     0,    22,     1,    15,    26,    27,
+      28,    29,    12,     1,    22,     3,    15,    34,     6,     7,
+      15,     9,    10,    11,     1,    18,    34,    21,    22,    17,
+      18,    19,    23,    24,    25,    12,    13,    14,    13,    14,
+       3,    20,    19,     6,     7,    32,     9,    10,    11,    78,
+      79,    80,    81,    33,    17,    16,    19,   117,   118,   119,
+     120,   121,   122,    76,    77,    27,    28,   117,   118,   119,
+     120,   121,   122,    82,    83,    13,   136,   137,   138,    13,
+      13,    13,    13,     3,    13,    13,   136,   137,   138,    16,
+      16,    16,    16,    16,    16,    12,     8,     8,     8,     7,
+     102,    74,    -1,    75
   };
 
   const signed char
   Parser::yystos_[] =
   {
-       0,     3,     6,     7,     9,    10,    17,    19,    38,    39,
-      40,    41,    42,    46,    47,    48,    49,    51,    61,    62,
-      12,     3,    44,    15,    15,    15,    39,     3,     4,     5,
-      11,    15,    22,    34,    50,    52,    53,    54,    55,    56,
-      57,    58,    59,    60,     0,    41,    52,    12,    45,    61,
-      43,    52,    52,    52,    18,    15,    52,    59,    59,    20,
-      33,    32,    30,    31,    26,    27,    28,    29,    21,    22,
-      23,    24,    25,    13,    52,    13,    13,    14,    16,    16,
-      16,    16,    16,    54,    55,    56,    56,    57,    57,    57,
-      57,    58,    58,    59,    59,    59,     3,    44,    41,    41,
-      13,     8,    41
+       0,     3,     6,     7,     9,    10,    11,    17,    19,    38,
+      39,    40,    41,    42,    46,    47,    48,    49,    50,    51,
+      52,    53,    54,    55,    65,    66,    12,     1,     3,    44,
+       1,    39,     1,     3,     4,     5,    15,    22,    34,    54,
+      56,    57,    58,    59,    60,    61,    62,    63,    64,     0,
+      41,     1,    15,     1,    15,     1,    15,     1,    15,     1,
+      56,    13,    65,     1,    12,    45,    65,    43,    18,    18,
+      56,    63,    63,    20,    33,    32,    30,    31,    26,    27,
+      28,    29,    21,    22,    23,    24,    25,    56,    56,    56,
+      56,    56,    56,    16,     1,    16,    13,    13,    13,    56,
+      13,    13,    14,    16,    58,    59,    60,    60,    61,    61,
+      61,    61,    62,    62,    63,    63,    63,    16,     1,    16,
+      16,     1,    16,    16,    16,    16,     3,    44,    41,    41,
+      41,    41,    41,    41,    13,    13,     8,     8,     8,    41,
+      41,    41
   };
 
   const signed char
   Parser::yyr1_[] =
   {
        0,    37,    38,    39,    39,    40,    40,    41,    41,    41,
-      41,    41,    41,    41,    42,    43,    43,    44,    45,    45,
-      46,    47,    47,    48,    49,    50,    51,    52,    53,    53,
-      54,    54,    55,    55,    55,    56,    56,    56,    56,    56,
-      57,    57,    57,    58,    58,    58,    58,    59,    59,    59,
-      60,    60,    60,    60,    60,    61,    62,    62
+      41,    41,    41,    41,    41,    42,    42,    43,    43,    44,
+      45,    45,    46,    46,    47,    48,    49,    50,    51,    51,
+      51,    51,    51,    51,    52,    52,    52,    53,    53,    54,
+      54,    54,    55,    55,    56,    56,    57,    57,    58,    58,
+      59,    59,    59,    60,    60,    60,    60,    60,    61,    61,
+      61,    62,    62,    62,    62,    63,    63,    63,    64,    64,
+      64,    64,    64,    65,    66,    66,    66,    66
   };
 
   const signed char
   Parser::yyr2_[] =
   {
        0,     2,     1,     1,     0,     2,     1,     1,     1,     1,
-       1,     1,     1,     1,     4,     3,     0,     2,     2,     0,
-       4,     5,     7,     5,     5,     3,     3,     1,     3,     1,
-       3,     1,     3,     3,     1,     3,     3,     3,     3,     1,
-       3,     3,     1,     3,     3,     3,     1,     2,     2,     1,
-       1,     1,     1,     1,     3,     3,     4,     1
+       1,     1,     1,     1,     1,     4,     3,     3,     0,     2,
+       2,     0,     4,     3,     1,     1,     1,     1,     5,     7,
+       7,     7,     5,     5,     5,     5,     5,     5,     5,     3,
+       4,     3,     3,     3,     1,     1,     3,     1,     3,     1,
+       3,     3,     1,     3,     3,     3,     3,     1,     3,     3,
+       1,     3,     3,     3,     1,     2,     2,     1,     1,     1,
+       1,     1,     3,     3,     4,     4,     4,     1
   };
 
 
-#if YYDEBUG
+#if YYDEBUG || 1
   // YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
   // First, the terminals, then, starting at \a YYNTOKENS, nonterminals.
   const char*
@@ -1304,24 +1409,26 @@ namespace proyecto {
   "GREATER_EQUAL", "EQUAL", "DISTINCT", "AND", "OR", "NOT", "DOT", "THEN",
   "$accept", "program", "opt_statement_list", "statement_list",
   "statement", "var_decl", "opt_ident_list", "ident_decl",
-  "opt_assign_expr", "assignment", "if_stmt", "while_stmt", "print_stmt",
-  "input_stmt", "block", "expression", "logical_or", "logical_and",
-  "equality", "comparison", "term", "factor", "unary", "primary", "array",
-  "array_decl", YY_NULLPTR
+  "opt_assign_expr", "assignment", "if_kw", "while_kw", "print_kw",
+  "input_kw", "if_stmt", "while_stmt", "print_stmt", "input_stmt", "block",
+  "expression", "logical_or", "logical_and", "equality", "comparison",
+  "term", "factor", "unary", "primary", "array", "array_decl", YY_NULLPTR
   };
 #endif
 
 
 #if YYDEBUG
-  const unsigned char
+  const short
   Parser::yyrline_[] =
   {
-       0,    42,    42,    45,    46,    49,    53,    59,    60,    61,
-      62,    63,    64,    65,    68,    73,    77,    82,    87,    88,
-      91,    96,    99,   104,   109,   114,   119,   124,   127,   130,
-     133,   136,   139,   142,   145,   148,   151,   154,   157,   160,
-     163,   166,   169,   172,   175,   178,   181,   184,   187,   190,
-     193,   194,   195,   196,   197,   200,   205,   208
+       0,    53,    53,    57,    58,    62,    66,    73,    74,    75,
+      76,    77,    78,    79,    80,    84,    87,    91,    95,    99,
+     105,   106,   110,   113,   117,   121,   125,   129,   133,   137,
+     141,   142,   143,   144,   148,   152,   153,   157,   161,   165,
+     169,   170,   174,   177,   181,   181,   185,   188,   192,   195,
+     199,   202,   205,   209,   212,   215,   218,   221,   225,   228,
+     231,   235,   238,   241,   244,   248,   251,   254,   258,   259,
+     260,   261,   262,   266,   272,   275,   276,   277
   };
 
   void
@@ -1402,8 +1509,9 @@ namespace proyecto {
       return symbol_kind::S_YYUNDEF;
   }
 
-#line 24 "gramatica.y"
+#line 34 "gramatica.y"
 } // proyecto
-#line 1408 "Parser.cpp"
+#line 1515 "Parser.cpp"
 
-#line 211 "gramatica.y"
+#line 280 "gramatica.y"
+

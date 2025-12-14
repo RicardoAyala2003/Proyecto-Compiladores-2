@@ -1,0 +1,4 @@
+// Test: Greater than or equal (equal)
+int x = 5;
+int y = 5;
+print(x >= y);  // Output: 1

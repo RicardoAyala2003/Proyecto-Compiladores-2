@@ -1,7 +1,6 @@
-
-
 %language "C++"
 %require "3.2"
+%define parse.error verbose
 
 %code requires {
     #include <string>
@@ -12,9 +11,20 @@
 %{
     #include "Lexer.hpp"
     #define yylex(v) lexer.getNextToken(v)
-    
+
+    std::string lastKeyword = "";
+
     void proyecto::Parser::error(const std::string& msg) {
-        throw std::runtime_error("Error Sintáctico: " + msg + "\n");
+        std::string buffer = lexer.getBuffer();
+        int line = lexer.getLine();
+        int col = lexer.getColumn();
+
+        std::string errorMsg = "Error Sintáctico [Línea " + std::to_string(line) +
+                              ", Columna " + std::to_string(col) + "]";
+        errorMsg += ": " + msg;
+
+        lastKeyword = "";
+        throw std::runtime_error(errorMsg);
     }
 %}
 
@@ -39,173 +49,232 @@
 
 %%
 
-program: opt_statement_list { astN = new Program($1); }
-;
+program
+    : opt_statement_list { astN = new Program($1); }
+    ;
 
-opt_statement_list: statement_list { $$= $1; }
-                  | %empty { $$= new StatementList({}); }
-;
+opt_statement_list
+    : statement_list { $$ = $1; }
+    | %empty { $$ = new StatementList({}); }
+    ;
 
-statement_list: statement_list statement { 
-                    $$= $1; 
-                    reinterpret_cast<StatementList*>($$)->stmts.push_back($2);
-                }
-              | statement { 
-                    $$= new StatementList({});
-                    reinterpret_cast<StatementList*>($$)->stmts.push_back($1);
-                }
-;
+statement_list
+    : statement_list statement {
+        $$ = $1;
+        reinterpret_cast<StatementList*>($$)->stmts.push_back($2);
+      }
+    | statement {
+        $$ = new StatementList({});
+        reinterpret_cast<StatementList*>($$)->stmts.push_back($1);
+      }
+    ;
 
-statement: var_decl { $$= $1; }
-         | assignment { $$= $1; }
-         | if_stmt { $$= $1; }
-         | while_stmt { $$= $1; }
-         | print_stmt { $$= $1; }
-         | block { $$= $1; }
-         | array_decl { $$= $1; }
-;
+statement
+    : var_decl
+    | assignment
+    | if_stmt
+    | while_stmt
+    | print_stmt
+    | input_stmt
+    | block
+    | array_decl
+    ;
 
-var_decl: KW_INT ident_decl opt_ident_list SEMICOLON {
-            $$= new VarDeclStmt($2, $3);
-        }
-;
+var_decl
+    : KW_INT ident_decl opt_ident_list SEMICOLON {
+        $$ = new VarDeclStmt($2, $3);
+      }
+    | KW_INT error SEMICOLON %prec THEN
+    ;
 
-opt_ident_list: opt_ident_list COMMA ident_decl {
-                    $$= $1;
-                    reinterpret_cast<IdentList*>($$)->idents.push_back($3);
-                }
-              | %empty {
-                    $$= new IdentList({});
-                }
-;
+opt_ident_list
+    : opt_ident_list COMMA ident_decl {
+        $$ = $1;
+        reinterpret_cast<IdentList*>($$)->idents.push_back($3);
+      }
+    | %empty { $$ = new IdentList({}); }
+    ;
 
-ident_decl: IDENTIFIER opt_assign_expr {
-                $$= new IdentDecl($1, $2);
-            }
-;
+ident_decl
+    : IDENTIFIER opt_assign_expr {
+        $$ = new IdentDecl($1, $2);
+      }
+    ;
 
-opt_assign_expr: ASSIGN expression { $$= $2; }
-               | %empty { $$= nullptr; }
-;
+opt_assign_expr
+    : ASSIGN expression { $$ = $2; }
+    | %empty { $$ = nullptr; }
+    ;
 
-assignment: IDENTIFIER ASSIGN expression SEMICOLON {
-                $$= new AssignmentStmt($1, $3);
-            }
-;
+assignment
+    : IDENTIFIER ASSIGN expression SEMICOLON {
+        $$ = new AssignmentStmt($1, $3);
+      }
+    | IDENTIFIER ASSIGN error %prec THEN
+    ;
 
-if_stmt: KW_IF OP_PAR expression CLOSE_PAR statement %prec THEN {
-            $$= new IfStmt($3, $5, nullptr);
-         }
-       | KW_IF OP_PAR expression CLOSE_PAR statement KW_ELSE statement {
-            $$= new IfStmt($3, $5, $7);
-         }
-;
+if_kw
+    : KW_IF { lastKeyword = "if"; }
+    ;
 
-while_stmt: KW_WHILE OP_PAR expression CLOSE_PAR statement {
-                $$= new WhileStmt($3, $5);
-            }
-;
+while_kw
+    : KW_WHILE { lastKeyword = "while"; }
+    ;
 
-print_stmt: KW_PRINT OP_PAR expression CLOSE_PAR SEMICOLON {
-                $$= new PrintStmt($3);
-            }
-;
+print_kw
+    : KW_PRINT { lastKeyword = "print"; }
+    ;
 
-input_stmt: KW_INPUT OP_PAR CLOSE_PAR {
-                $$= new InputStmt();
-            }
-;
+input_kw
+    : KW_INPUT { lastKeyword = "input"; }
+    ;
 
-block: OP_BRACE opt_statement_list CLOSE_BRACE {
-            $$= new BlockStmt($2);
-       }
-;
+if_stmt
+    : if_kw OP_PAR expression CLOSE_PAR statement %prec THEN {
+        lastKeyword = "";
+        $$ = new IfStmt($3, $5, nullptr);
+      }
+    | if_kw OP_PAR expression CLOSE_PAR statement KW_ELSE statement {
+        lastKeyword = "";
+        $$ = new IfStmt($3, $5, $7);
+      }
+    | if_kw OP_PAR expression error statement KW_ELSE statement %prec THEN
+    | if_kw error expression CLOSE_PAR statement KW_ELSE statement %prec THEN
+    | if_kw error expression CLOSE_PAR statement %prec THEN
+    | if_kw OP_PAR expression error statement %prec THEN
+    ;
 
-expression: logical_or { $$= $1; }
-;
+while_stmt
+    : while_kw OP_PAR expression CLOSE_PAR statement {
+        lastKeyword = "";
+        $$ = new WhileStmt($3, $5);
+      }
+    | while_kw OP_PAR expression error statement %prec THEN
+    | while_kw error expression CLOSE_PAR statement %prec THEN
+    ;
 
-logical_or: logical_or OR logical_and {
-                $$= new BinaryExpr($1, BinaryOperator::OR, $3);
-            }
-          | logical_and { $$= $1; }
-;
+print_stmt
+    : print_kw OP_PAR expression CLOSE_PAR SEMICOLON {
+        lastKeyword = "";
+        $$ = new PrintStmt($3);
+      }
+    | print_kw error expression CLOSE_PAR SEMICOLON %prec THEN
+    ;
 
-logical_and: logical_and AND equality {
-                $$= new BinaryExpr($1, BinaryOperator::AND, $3);
-             }
-           | equality { $$= $1; }
-;
+input_stmt
+    : input_kw OP_PAR CLOSE_PAR {
+        lastKeyword = "";
+        $$ = new InputStmt();
+      }
+    | input_kw OP_PAR error CLOSE_PAR %prec THEN
+    | input_kw error CLOSE_PAR %prec THEN
+    ;
 
-equality: equality EQUAL comparison {
-            $$= new BinaryExpr($1, BinaryOperator::EQUAL, $3);
-          }
-        | equality DISTINCT comparison {
-            $$= new BinaryExpr($1, BinaryOperator::DISTINCT, $3);
-          }
-        | comparison { $$= $1; }
-;
+block
+    : OP_BRACE opt_statement_list CLOSE_BRACE {
+        $$ = new BlockStmt($2);
+      }
+    | OP_BRACE error CLOSE_BRACE %prec THEN
+    ;
 
-comparison: comparison LESS_THAN term {
-                $$= new BinaryExpr($1, BinaryOperator::LESS_THAN, $3);
-            }
-          | comparison GREATER_THAN term {
-                $$= new BinaryExpr($1, BinaryOperator::GREATER_THAN, $3);
-            }
-          | comparison LESS_EQUAL term {
-                $$= new BinaryExpr($1, BinaryOperator::LESS_EQUAL, $3);
-            }
-          | comparison GREATER_EQUAL term {
-                $$= new BinaryExpr($1, BinaryOperator::GREATER_EQUAL, $3);
-            }
-          | term { $$= $1; }
-;
+expression
+    : logical_or | error
+    ;
 
-term: term PLUS factor {
-        $$= new BinaryExpr($1, BinaryOperator::PLUS, $3);
+logical_or
+    : logical_or OR logical_and {
+        $$ = new BinaryExpr($1, BinaryOperator::OR, $3);
+      }
+    | logical_and
+    ;
+
+logical_and
+    : logical_and AND equality {
+        $$ = new BinaryExpr($1, BinaryOperator::AND, $3);
+      }
+    | equality
+    ;
+
+equality
+    : equality EQUAL comparison {
+        $$ = new BinaryExpr($1, BinaryOperator::EQUAL, $3);
+      }
+    | equality DISTINCT comparison {
+        $$ = new BinaryExpr($1, BinaryOperator::DISTINCT, $3);
+      }
+    | comparison
+    ;
+
+comparison
+    : comparison LESS_THAN term {
+        $$ = new BinaryExpr($1, BinaryOperator::LESS_THAN, $3);
+      }
+    | comparison GREATER_THAN term {
+        $$ = new BinaryExpr($1, BinaryOperator::GREATER_THAN, $3);
+      }
+    | comparison LESS_EQUAL term {
+        $$ = new BinaryExpr($1, BinaryOperator::LESS_EQUAL, $3);
+      }
+    | comparison GREATER_EQUAL term {
+        $$ = new BinaryExpr($1, BinaryOperator::GREATER_EQUAL, $3);
+      }
+    | term
+    ;
+
+term
+    : term PLUS factor {
+        $$ = new BinaryExpr($1, BinaryOperator::PLUS, $3);
       }
     | term MINUS factor {
-        $$= new BinaryExpr($1, BinaryOperator::MINUS, $3);
+        $$ = new BinaryExpr($1, BinaryOperator::MINUS, $3);
       }
-    | factor { $$= $1; }
-;
+    | factor
+    ;
 
-factor: factor MULT unary {
-            $$= new BinaryExpr($1, BinaryOperator::MULT, $3);
-        }
-      | factor DIV unary {
-            $$= new BinaryExpr($1, BinaryOperator::DIV, $3);
-        }
-      | factor MOD unary {
-            $$= new BinaryExpr($1, BinaryOperator::MOD, $3);
-        }
-      | unary { $$= $1; }
-;
+factor
+    : factor MULT unary {
+        $$ = new BinaryExpr($1, BinaryOperator::MULT, $3);
+      }
+    | factor DIV unary {
+        $$ = new BinaryExpr($1, BinaryOperator::DIV, $3);
+      }
+    | factor MOD unary {
+        $$ = new BinaryExpr($1, BinaryOperator::MOD, $3);
+      }
+    | unary
+    ;
 
-unary: NOT unary {
-            $$= new UnaryExpr(UnaryOperator::NOT, $2);
-       }
-     | MINUS unary {
-            $$= new UnaryExpr(UnaryOperator::NEGATE, $2);
-       }
-     | primary { $$= $1; }
-;
+unary
+    : NOT unary {
+        $$ = new UnaryExpr(UnaryOperator::NOT, $2);
+      }
+    | MINUS unary {
+        $$ = new UnaryExpr(UnaryOperator::NEGATE, $2);
+      }
+    | primary
+    ;
 
-primary: INTEGER { $$= $1; }
-       | FLOAT { $$= $1; }
-       | IDENTIFIER { $$= $1; }
-       | input_stmt { $$= $1; }
-       | OP_PAR expression CLOSE_PAR { $$= new ParExpr($2);  }
-;
+primary
+    : INTEGER
+    | FLOAT
+    | IDENTIFIER
+    | input_stmt
+    | OP_PAR expression CLOSE_PAR { $$ = new ParExpr($2); }
+    ;
 
-array: OP_BRACKET expression CLOSE_BRACKET {
-            $$= new ArrayAccess($2);
-       }
-;
+array
+    : OP_BRACKET expression CLOSE_BRACKET {
+        $$ = new ArrayAccess($2);
+      }
+    ;
 
-array_decl: KW_INT IDENTIFIER array SEMICOLON {
-                $$= new ArrayDeclStmt($2, $3);
-            }
-          | array { $$= $1; }
-;
+array_decl
+    : KW_INT IDENTIFIER array SEMICOLON {
+        $$ = new ArrayDeclStmt($2, $3);
+      }
+    | KW_INT IDENTIFIER error SEMICOLON %prec THEN
+    | KW_INT error array SEMICOLON %prec THEN
+    | array
+    ;
 
 %%

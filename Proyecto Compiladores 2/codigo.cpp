@@ -3,8 +3,8 @@
 int main() {
 int y;
 int x;
-x=10;
-y=x + 1;
-cout << y << endl;
+x=5;
+y=10;
+if (x < 5) cout << y << endl;else cout << x << endl; 
 return 0;
 }
