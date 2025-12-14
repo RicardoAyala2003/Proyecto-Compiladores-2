@@ -1,8 +1,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
-#include "ast.hpp"
-#include "Lexer.hpp"
-#include "Parser.hpp"
+#include "../ast.hpp"
+#include "../Lexer.hpp"
+#include "../Parser.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
